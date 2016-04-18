@@ -11,13 +11,13 @@ public class ResourceLocation
 		this.resource = this.getClass().getResource(path);
 	}
 	
-	public URL getPathURL(String path)
+	public URL getPathURL()
 	{
 		return this.resource;
 	}
 	
-	public String getPath(String path)
+	public String getPath()
 	{
-		return this.resource.toString().replace("file:", "");
+		return this.resource.toString().replace("file:/", "");
 	}
 }
