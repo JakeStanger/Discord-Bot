@@ -17,6 +17,7 @@ import net.dv8tion.jda.entities.VoiceChannel;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.hooks.ListenerAdapter;
 import net.dv8tion.jda.utils.SimpleLog;
+import util.Phrases;
 import util.ReadWrite;
 
 public class Bot extends ListenerAdapter
@@ -97,14 +98,14 @@ public class Bot extends ListenerAdapter
 				{
 					case "play":
 						if(command.length > 1) playSound(command[1], event);
-						else this.message("Play what?!", event);
+						else this.message(Phrases.NoSound.getRandom(), event);
 						break;
 					case "stop":
 						stopSound(event);
 						break;
 					case "join":
 						if(command.length > 1) joinChannel(command[1], event);
-						else this.message("Join what?!", event);
+						else this.message(Phrases.NoChannel.getRandom(), event);
 						break;
 					case "leave":
 						leaveChannel(event);
@@ -120,14 +121,14 @@ public class Bot extends ListenerAdapter
 						break;
 					case "mute":
 						if(command.length > 1) muteUser(command[1], event);
-						else this.message("Mute who?!", event);
+						else this.message(Phrases.NoUser.getRandom(), event);
 						break;
 					case "help":
 						if(command.length > 1 && command[1].equals("play")) helpPlay(event);
 						else help(event);
 						break;
 					default:
-						this.message("You might as well have just spoken in Greek.", event);
+						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
 			}
 		}
@@ -208,6 +209,12 @@ public class Bot extends ListenerAdapter
 	
 	private void muteUser(String userMention, GuildMessageReceivedEvent event)
 	{
+		if(userMention.equals("@everyone"))
+		{
+			message("No.", event);
+			return;
+		}
+		
 		List<User> users = event.getChannel().getUsers();
 		for(User user : users)
 		{
@@ -228,7 +235,7 @@ public class Bot extends ListenerAdapter
 					}
 					ReadWrite.writeMutedUsers(mutedUsers);
 				}
-				else message("We cannot be silenced", event);
+				else message("No", event);
 				return;
 			}
 		}
