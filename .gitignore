@@ -2,6 +2,7 @@
 build/
 bin/
 token.txt
+muted.txt
 .classpath
 
 # Ignore Gradle GUI config
