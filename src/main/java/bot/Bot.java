@@ -2,8 +2,7 @@ package bot;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -11,6 +10,7 @@ import java.util.Random;
 import javax.security.auth.login.LoginException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.audio.player.FilePlayer;
 import net.dv8tion.jda.audio.player.Player;
@@ -18,8 +18,9 @@ import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.entities.VoiceChannel;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.hooks.ListenerAdapter;
+import net.dv8tion.jda.utils.AvatarUtil;
 import net.dv8tion.jda.utils.SimpleLog;
-import util.ResourceLocation;
+import util.ReadWrite;
 
 public class Bot extends ListenerAdapter
 {
@@ -28,7 +29,9 @@ public class Bot extends ListenerAdapter
 	private SimpleLog logger;
 	private Player player = null;
 	private Random random;
+	
 	private HashMap<String, File> sounds;
+	private List<String> mutedUsers;
 	
 	private static final String NAME = "@Grandad_Botbags";
 	
@@ -37,7 +40,8 @@ public class Bot extends ListenerAdapter
 		instance = this;
 		logger = SimpleLog.getLog("GrandadBotbags");
 		random = new Random();
-		sounds = this.getSounds();
+		sounds = ReadWrite.readSounds();
+		mutedUsers = ReadWrite.readMutedUsers();
 	}
 	
 	public static Bot getInstance()
@@ -55,7 +59,8 @@ public class Bot extends ListenerAdapter
 		
 		try
         {
-            new JDABuilder().setBotToken(token).addListener(new Bot()).buildBlocking();
+            JDA jda = new JDABuilder().setBotToken(token).addListener(new Bot()).buildBlocking();
+            jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File("avatar.png"))).update();;
         }
         catch (IllegalArgumentException e)
         {
@@ -72,6 +77,10 @@ public class Bot extends ListenerAdapter
             e.printStackTrace();
             success = false;
         }
+		catch(UnsupportedEncodingException e)
+		{
+			e.printStackTrace();
+		}
 		
 		return success;
     }
@@ -79,41 +88,53 @@ public class Bot extends ListenerAdapter
 	@Override
 	public void onGuildMessageReceived(GuildMessageReceivedEvent event)
 	{
-		String message = event.getMessage().getContent();
-		
-		this.grammarNazi(message, event);
-		if(message.contains(NAME))
+		if(!(this.mutedUsers.contains(event.getAuthor().getId())))
 		{
-			String[] command = message.substring((NAME + " ").length()).split(" ");
-			switch(command[0])
+			String message = event.getMessage().getContent();
+			
+			this.grammarNazi(message, event);
+			if(message.contains(NAME))
 			{
-				case "play":
-					if(command[1] != null) playSound(command[1], event);
-					else this.message("Play what?!", event);
-					break;
-				case "stop":
-					stopSound();
-					break;
-				case "join":
-					if(command[1] != null) joinChannel(command[1], event);
-					else this.message("Join what?!", event);
-					break;
-				case "leave":
-					leaveChannel(event);
-					break;
-				case "coin":
-					coin(event);
-					break;
-				case "dice":
-					dice(event);
-					break;
-				case "randuser":
-					randUser(event);
-					break;
-				default:
-					this.message("You might as well have just spoken in Greek.", event);
+				String[] command = message.substring((NAME + " ").length()).toLowerCase().split(" ");
+				switch(command[0])
+				{
+					case "play":
+						if(command.length > 1) playSound(command[1], event);
+						else this.message("Play what?!", event);
+						break;
+					case "stop":
+						stopSound(event);
+						break;
+					case "join":
+						if(command.length > 1) joinChannel(command[1], event);
+						else this.message("Join what?!", event);
+						break;
+					case "leave":
+						leaveChannel(event);
+						break;
+					case "coin":
+						coin(event);
+						break;
+					case "dice":
+						dice(event);
+						break;
+					case "randuser":
+						randUser(event);
+						break;
+					case "mute":
+						if(command.length > 1) muteUser(command[1], event);
+						else this.message("Mute who?!", event);
+						break;
+					case "help":
+						if(command.length > 1 && command[1].equals("play")) helpPlay(event);
+						else help(event);
+						break;
+					default:
+						this.message("You might as well have just spoken in Greek.", event);
+				}
 			}
 		}
+		else event.getMessage().deleteMessage();
 	}
 	
 	public void message(String message, GuildMessageReceivedEvent event)
@@ -148,9 +169,10 @@ public class Bot extends ListenerAdapter
         }
 	}
 	
-	private void stopSound()
+	private void stopSound(GuildMessageReceivedEvent event)
 	{
-		player.stop();
+		if(player != null) player.stop();
+		else message("And how do you plan on silencing silence?", event);
 	}
 	
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
@@ -188,38 +210,63 @@ public class Bot extends ListenerAdapter
 		this.message("**" + user.getAsMention() + "**, I choose you!", event);
 	}
 	
-	private void help(GuildMessageReceivedEvent event)
+	private void muteUser(String userMention, GuildMessageReceivedEvent event)
 	{
-		this.message("Coming soon.", event);
+		List<User> users = event.getChannel().getUsers();
+		for(User user : users)
+		{
+			if(("@" + user.getUsername()).equals(userMention))
+			{
+				if(!user.isBot())
+				{
+					String id = user.getId();
+					if(!this.mutedUsers.contains(id))
+					{
+						this.mutedUsers.add(id);
+						message("Muted " + user.getAsMention(), event);
+					}
+					else
+					{
+						this.mutedUsers.remove(id);
+						message("Unmuted " + user.getAsMention(), event);
+					}
+					ReadWrite.writeMutedUsers(mutedUsers);
+				}
+				else message("We cannot be silenced", event);
+				return;
+			}
+		}
+		message("I cannot mute those who fail to exist.", event);
 	}
 	
-	private void helpMusic(GuildMessageReceivedEvent event)
+	private void help(GuildMessageReceivedEvent event)
 	{
-		this.message("Coming soon.", event);
+		this.message("***Commands:***\n"
+				+ "**play <sound>** - Plays the given sound\n"
+				+ "**stop** - Stops playing the current sound\n"
+				+ "**join <channel>** - Joins the given voice channel\n"
+				+ "**leave** - Leaves the current voice channel\n"
+				+ "**coin** - Flips a coin\n"
+				+ "**dice** - Rolls a dice\n"
+				+ "**randUser** - Gets a random user\n"
+				+ "**mute <user>** - Mutes the given user in all text channels\n"
+				+ "**help [play]** - Get a list of commands [sounds]\n", event);
+	}
+	
+	private void helpPlay(GuildMessageReceivedEvent event)
+	{
+		StringBuilder message = new StringBuilder();
+		boolean bold = true;
+		for(String command : this.sounds.keySet())
+		{
+			message.append((bold ? "**" : "") + command + (bold ? "**" : "" )+ "    ");
+			bold = !bold;
+		}
+		message(message.toString(), event);
 	}
 	
 	private void grammarNazi(String message, GuildMessageReceivedEvent event)
 	{
-		if(message.contains("ping")) event.getChannel().sendMessage("pong");
-	}
-	
-	private HashMap<String, File> getSounds()
-	{
-		HashMap<String, File> files = new HashMap<String, File>();
-		
-		try
-		{
-			Files.walk(Paths.get(new ResourceLocation("/audio").getPath())).forEach(filePath -> {
-			    if (Files.isRegularFile(filePath)) {
-			        files.put(filePath.getFileName().toString().substring(0, filePath.getFileName().toString().lastIndexOf(".")), filePath.toFile());
-			    }
-			});
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
-		
-		return files;
+		if(message.equals("ping")) event.getChannel().sendMessage("pong");
 	}
 }
