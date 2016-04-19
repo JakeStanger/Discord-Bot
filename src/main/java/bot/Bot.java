@@ -2,7 +2,6 @@ package bot;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -10,7 +9,6 @@ import java.util.Random;
 import javax.security.auth.login.LoginException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.audio.player.FilePlayer;
 import net.dv8tion.jda.audio.player.Player;
@@ -18,7 +16,6 @@ import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.entities.VoiceChannel;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.hooks.ListenerAdapter;
-import net.dv8tion.jda.utils.AvatarUtil;
 import net.dv8tion.jda.utils.SimpleLog;
 import util.ReadWrite;
 
@@ -59,8 +56,8 @@ public class Bot extends ListenerAdapter
 		
 		try
         {
-            JDA jda = new JDABuilder().setBotToken(token).addListener(new Bot()).buildBlocking();
-            jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File("avatar.png"))).update();;
+            new JDABuilder().setBotToken(token).addListener(new Bot()).buildBlocking();
+            //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); Only enable when updating avatar
         }
         catch (IllegalArgumentException e)
         {
@@ -77,10 +74,10 @@ public class Bot extends ListenerAdapter
             e.printStackTrace();
             success = false;
         }
-		catch(UnsupportedEncodingException e)
+		/*catch(UnsupportedEncodingException e)
 		{
 			e.printStackTrace();
-		}
+		}*/
 		
 		return success;
     }
@@ -178,8 +175,7 @@ public class Bot extends ListenerAdapter
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
 	{
 		//Scans through the VoiceChannels in this Guild, looking for one with a case-insensitive matching name.
-        VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null);  
-        //If there isn't a matching name, return null.
+        VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null); 
         if (channel == null)
         {
             this.message("There isn't a VoiceChannel in this Guild with the name: '" + channelName + "'", event);
@@ -215,7 +211,7 @@ public class Bot extends ListenerAdapter
 		List<User> users = event.getChannel().getUsers();
 		for(User user : users)
 		{
-			if(("@" + user.getUsername()).equals(userMention))
+			if(("@" + user.getUsername()).toLowerCase().equals(userMention))
 			{
 				if(!user.isBot())
 				{
