@@ -8,12 +8,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -26,8 +20,7 @@ import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import bot.Bot;
-import net.dv8tion.jda.utils.SimpleLog;
-import net.dv8tion.jda.utils.SimpleLog.Level;
+import util.ReadWrite;
 
 public class Window implements ActionListener
 {
@@ -35,8 +28,6 @@ public class Window implements ActionListener
 	private JTextField txtToken;
 	private JButton btnStart;
 	private JCheckBox chkRemember;
-	
-	private SimpleLog logger = SimpleLog.getLog("Window");
 	
 	//private ResourceLocation tokenLocation = new ResourceLocation("/token.txt");
 	
@@ -101,7 +92,7 @@ public class Window implements ActionListener
 		
 		this.btnStart.addActionListener(this);
 		
-		String token = this.readTokenFromFile();
+		String token = ReadWrite.readTokenFromFile();
 		if(token != null) this.txtToken.setText(token);
 	}
 
@@ -114,50 +105,8 @@ public class Window implements ActionListener
 			if(Bot.getInstance().init(this.txtToken.getText()))
 			{
 				this.btnStart.setEnabled(false);
-				if(this.chkRemember.isSelected()) this.writeTokenToFile(this.txtToken.getText());
+				if(this.chkRemember.isSelected()) ReadWrite.writeTokenToFile(this.txtToken.getText());
 			}
 		}
-	}
-	
-	public void writeTokenToFile(String token)
-	{
-		try
-		{
-			FileWriter file = new FileWriter("token.txt");
-			BufferedWriter buffer = new BufferedWriter(file);
-			buffer.write(token);
-			buffer.close();
-			
-			logger.log(Level.INFO, "Succesfully wrote token to file.");
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public String readTokenFromFile()
-	{
-		String token = null;
-		
-		FileReader file;
-		try
-		{
-			file = new FileReader("token.txt");
-			BufferedReader buffer = new BufferedReader(file);
-			token = buffer.readLine();
-			buffer.close();
-			
-			logger.log(Level.INFO, "Loaded token from file.");
-		}
-		catch(FileNotFoundException e)
-		{
-			logger.log(Level.INFO, "No token file found.");
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
-		return token;
 	}
 }
