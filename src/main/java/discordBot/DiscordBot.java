@@ -7,7 +7,6 @@ public class DiscordBot
 {	
 	public static void main(String[] args)
 	{
-		//new Play().init();
 		new Window();
 		new Bot();
 	}
