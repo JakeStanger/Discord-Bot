@@ -7,7 +7,12 @@ public class DiscordBot
 {	
 	public static void main(String[] args)
 	{
-		new Window();
-		new Bot();
+		if(args.length == 0)
+		{
+			new Window();
+			new Bot();
+		}
+		
+		else new Bot().init(args[0]);
 	}
 }

@@ -14,15 +14,17 @@ jar {
     }
 }
 
-version = '1.0.0'
+version = '1.0.1'
 
 task fatJar(type: Jar) {
+	exclude 'audio'
+	exclude 'images'
 	manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',  
         	'Implementation-Version': version,
         	'Main-Class': 'discordBot.DiscordBot'
     }
-    baseName = project.name + '-all'
+    baseName = "Grandad_Botbags"
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
