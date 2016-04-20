@@ -10,6 +10,7 @@ import javax.security.auth.login.LoginException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import net.dv8tion.jda.JDABuilder;
+import net.dv8tion.jda.Permission;
 import net.dv8tion.jda.audio.player.FilePlayer;
 import net.dv8tion.jda.audio.player.Player;
 import net.dv8tion.jda.entities.User;
@@ -135,12 +136,6 @@ public class Bot extends ListenerAdapter
 		else event.getMessage().deleteMessage();
 	}
 	
-	public void message(String message, GuildMessageReceivedEvent event)
-	{
-		System.out.println("[Message] " + message);
-		event.getChannel().sendMessage(message);
-	}
-	
 	private void playSound(String sound, GuildMessageReceivedEvent event)
 	{
 		File audioFile = null;
@@ -149,7 +144,7 @@ public class Bot extends ListenerAdapter
             if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
             else
             {
-            	this.message("That's not a thing.", event);
+            	this.message(Phrases.UnknownSound.getRandom(), event);
             	return;
             }
 
@@ -159,18 +154,18 @@ public class Bot extends ListenerAdapter
         }
         catch (IOException e)
         {
-            this.message("That's not a thing.", event);
+            this.message(Phrases.UnknownSound.getRandom(), event);
         }
         catch (UnsupportedAudioFileException e)
         {
-           this.message("I can't read that sort of file.", event);
+           this.message(Phrases.UnreadableSound.getRandom(), event);
         }
 	}
 	
 	private void stopSound(GuildMessageReceivedEvent event)
 	{
 		if(player != null) player.stop();
-		else message("And how do you plan on silencing silence?", event);
+		else message(Phrases.StopSilence.getRandom(), event);
 	}
 	
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
@@ -179,7 +174,7 @@ public class Bot extends ListenerAdapter
         VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null); 
         if (channel == null)
         {
-            this.message("There isn't a VoiceChannel in this Guild with the name: '" + channelName + "'", event);
+            this.message(Phrases.UnknownChannel.getRandom(), event);
             return;
         }
         event.getGuild().getAudioManager().openAudioConnection(channel);
@@ -192,7 +187,7 @@ public class Bot extends ListenerAdapter
 	
 	private void coin(GuildMessageReceivedEvent event)
 	{
-		this.message(this.random.nextInt(2) == 0 ? "Heads" : "Tails", event);
+		this.message(this.random.nextInt(2) == 0 ? Phrases.Coin.Heads.getRandom() : Phrases.Coin.Tails.getRandom(), event);
 	}
 	
 	private void dice(GuildMessageReceivedEvent event)
@@ -204,42 +199,46 @@ public class Bot extends ListenerAdapter
 	{
 		List<User> users = event.getChannel().getUsers();
 		User user = users.get(random.nextInt(users.size()));
-		this.message("**" + user.getAsMention() + "**, I choose you!", event);
+		this.message(user.getAsMention() +"," +  Phrases.UserMention.getRandom(), event);
 	}
 	
 	private void muteUser(String userMention, GuildMessageReceivedEvent event)
 	{
-		if(userMention.equals("@everyone"))
+		if(event.getChannel().checkPermission(event.getAuthor(), Permission.MESSAGE_MANAGE))
 		{
-			message("No.", event);
-			return;
-		}
-		
-		List<User> users = event.getChannel().getUsers();
-		for(User user : users)
-		{
-			if(("@" + user.getUsername()).toLowerCase().equals(userMention))
+			if(userMention.equals("@everyone"))
 			{
-				if(!user.isBot())
-				{
-					String id = user.getId();
-					if(!this.mutedUsers.contains(id))
-					{
-						this.mutedUsers.add(id);
-						message("Muted " + user.getAsMention(), event);
-					}
-					else
-					{
-						this.mutedUsers.remove(id);
-						message("Unmuted " + user.getAsMention(), event);
-					}
-					ReadWrite.writeMutedUsers(mutedUsers);
-				}
-				else message("No", event);
+				message(Phrases.MuteEveryone.getRandom(), event);
 				return;
 			}
+			
+			List<User> users = event.getChannel().getUsers();
+			for(User user : users)
+			{
+				if(("@" + user.getUsername()).toLowerCase().equals(userMention))
+				{
+					if(!user.isBot())
+					{
+						String id = user.getId();
+						if(!this.mutedUsers.contains(id))
+						{
+							this.mutedUsers.add(id);
+							message("Muted " + user.getAsMention(), event);
+						}
+						else
+						{
+							this.mutedUsers.remove(id);
+							message("Unmuted " + user.getAsMention(), event);
+						}
+						ReadWrite.writeMutedUsers(mutedUsers);
+					}
+					else message(Phrases.MuteBot.getRandom(), event);
+					return;
+				}
+			}
+			message(Phrases.UnknownUser.getRandom(), event);
 		}
-		message("I cannot mute those who fail to exist.", event);
+		else message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	private void help(GuildMessageReceivedEvent event)
@@ -252,7 +251,7 @@ public class Bot extends ListenerAdapter
 				+ "**coin** - Flips a coin\n"
 				+ "**dice** - Rolls a dice\n"
 				+ "**randUser** - Gets a random user\n"
-				+ "**mute <user>** - Mutes the given user in all text channels\n"
+				+ "**mute <@user>** - Mutes the given user in all text channels\n"
 				+ "**help [play]** - Get a list of commands [sounds]\n", event);
 	}
 	
@@ -270,6 +269,16 @@ public class Bot extends ListenerAdapter
 	
 	private void grammarNazi(String message, GuildMessageReceivedEvent event)
 	{
-		if(message.equals("ping")) event.getChannel().sendMessage("pong");
+		message = message.toLowerCase();
+		if(message.equals("ping")) message("pong", event);
+		if(message.contains(" alot ") || message.contains(" alot") || message.contains("alot ")) message("*A lot", event);
+		if(message.contains("any one")) message("*Anyone", event);
+		if(message.contains("reminder that")) message("You've just earned yourself a one-way ticket to hell.", event);
+	}
+	
+	public void message(String message, GuildMessageReceivedEvent event)
+	{
+		System.out.println("[Message] " + message);
+		event.getChannel().sendMessage(message);
 	}
 }
