@@ -92,7 +92,7 @@ public class Bot extends ListenerAdapter
 			String message = event.getMessage().getContent();
 			
 			this.grammarNazi(message, event);
-			if(message.contains(NAME))
+			if(message.startsWith(NAME))
 			{
 				String[] command = message.substring((NAME + " ").length()).toLowerCase().split(" ");
 				switch(command[0])
@@ -131,6 +131,8 @@ public class Bot extends ListenerAdapter
 					default:
 						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
+				
+				event.getMessage().deleteMessage();
 			}
 		}
 		else event.getMessage().deleteMessage();
@@ -199,7 +201,7 @@ public class Bot extends ListenerAdapter
 	{
 		List<User> users = event.getChannel().getUsers();
 		User user = users.get(random.nextInt(users.size()));
-		this.message(user.getAsMention() +"," +  Phrases.UserMention.getRandom(), event);
+		this.message(user.getAsMention() +", " +  Phrases.UserMention.getRandom(), event);
 	}
 	
 	private void muteUser(String userMention, GuildMessageReceivedEvent event)
