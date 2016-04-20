@@ -172,6 +172,7 @@ public class Bot extends ListenerAdapter
 	
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
 	{
+		event.getGuild().getAudioManager().closeAudioConnection();
 		//Scans through the VoiceChannels in this Guild, looking for one with a case-insensitive matching name.
         VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null); 
         if (channel == null)
