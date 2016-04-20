@@ -22,7 +22,6 @@ import javax.swing.JTextPane;
 
 import bot.Bot;
 import util.ReadWrite;
-import util.ResourceLocation;
 
 public class Window implements ActionListener
 {
@@ -37,7 +36,7 @@ public class Window implements ActionListener
 	{
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.X_AXIS));
-		frame.setIconImage(new ImageIcon(new ResourceLocation("/images/icon.png").getPath()).getImage());
+		frame.setIconImage(new ImageIcon("images/icon.png").getImage());
 		
 		JPanel pnlMain = new JPanel();
 		frame.getContentPane().add(pnlMain);

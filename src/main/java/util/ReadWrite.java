@@ -68,7 +68,7 @@ public class ReadWrite
 		
 		try
 		{
-			Files.walk(Paths.get(new ResourceLocation("/audio").getPath())).forEach(filePath -> 
+			Files.walk(Paths.get("audio")).forEach(filePath -> 
 			{
 			    if (Files.isRegularFile(filePath)) 
 			    {
