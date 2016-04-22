@@ -32,12 +32,11 @@ public class Bot extends ListenerAdapter
 	private HashMap<String, File> sounds;
 	private List<String> mutedUsers;
 	
-	private static final String NAME = "@Grandad_Botbags";
-	
 	public Bot()
 	{
 		instance = this;
 		logger = SimpleLog.getLog("GrandadBotbags");
+		logger.info("Creating new instance of bot");
 		random = new Random();
 		sounds = ReadWrite.readSounds();
 		mutedUsers = ReadWrite.readMutedUsers();
@@ -54,21 +53,22 @@ public class Bot extends ListenerAdapter
 	 */
 	public boolean init(String token)
     {
-        boolean success = true;
+        logger.info("Initialising bot");
+		boolean success = true;
 		
 		try
         {
-            new JDABuilder().setBotToken(token).addListener(new Bot()).buildBlocking();
+            new JDABuilder().setBotToken(token).addListener(this).buildBlocking();
             //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); Only enable when updating avatar
         }
         catch (IllegalArgumentException e)
         {
-            logger.fatal("The config was not populated. Please enter an email and password.");
+            logger.fatal("The config was not populated. Please enter a token.");
             success = false;
         }
         catch (LoginException e)
         {
-        	logger.fatal("The provided email / password combination was incorrect. Please provide valid details.");
+        	logger.fatal("The provided token was incorrect. Please provide valid details.");
             success = false;
         }
         catch (InterruptedException e)
@@ -76,10 +76,6 @@ public class Bot extends ListenerAdapter
             e.printStackTrace();
             success = false;
         }
-		/*catch(UnsupportedEncodingException e)
-		{
-			e.printStackTrace();
-		}*/
 		
 		return success;
     }
@@ -92,14 +88,14 @@ public class Bot extends ListenerAdapter
 			String message = event.getMessage().getContent();
 			
 			this.grammarNazi(message, event);
-			if(message.startsWith(NAME))
+			if(message.startsWith("!"))
 			{
-				String[] command = message.substring((NAME + " ").length()).toLowerCase().split(" ");
+				String[] command = message.substring(("!").length()).toLowerCase().split(" ");
 				switch(command[0])
 				{
 					case "play":
 						if(command.length > 1) playSound(command[1], event);
-						else this.message(Phrases.NoSound.getRandom(), event);
+						else this.helpPlay(event);;
 						break;
 					case "stop":
 						stopSound(event);
@@ -125,14 +121,11 @@ public class Bot extends ListenerAdapter
 						else this.message(Phrases.NoUser.getRandom(), event);
 						break;
 					case "help":
-						if(command.length > 1 && command[1].equals("play")) helpPlay(event);
-						else help(event);
+						help(event);
 						break;
 					default:
 						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
-				
-				event.getMessage().deleteMessage();
 			}
 		}
 		else event.getMessage().deleteMessage();
@@ -167,7 +160,7 @@ public class Bot extends ListenerAdapter
 	private void stopSound(GuildMessageReceivedEvent event)
 	{
 		if(player != null) player.stop();
-		else message(Phrases.StopSilence.getRandom(), event);
+		//else message(Phrases.StopSilence.getRandom(), event);
 	}
 	
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)

@@ -7,12 +7,17 @@ public class DiscordBot
 {	
 	public static void main(String[] args)
 	{
+		Bot bot = new Bot();
+		
 		if(args.length == 0)
 		{
+			System.out.println("No arguments specified. Will start GUI.");
 			new Window();
-			new Bot();
 		}
-		
-		else new Bot().init(args[0]);
+		else 
+		{
+			System.out.println("Token argument given. Will run from terminal.");
+			bot.init(args[0]);
+		}
 	}
 }

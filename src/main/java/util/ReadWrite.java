@@ -7,8 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,20 +64,21 @@ public class ReadWrite
 	{
 		HashMap<String, File> files = new HashMap<String, File>();
 		
-		try
+		File[] audioFiles = new File("./audio/").listFiles(); //You may need to change this on certain OSs
+		for(File file : audioFiles) System.out.println(file);
+		//If this pathname does not denote a directory, then listFiles() returns null. 
+
+		if(audioFiles.length != 0)
 		{
-			Files.walk(Paths.get("audio")).forEach(filePath -> 
+			for (File file : audioFiles) 
 			{
-			    if (Files.isRegularFile(filePath)) 
+			    if (file.isFile()) 
 			    {
-			        files.put(filePath.getFileName().toString().substring(0, filePath.getFileName().toString().lastIndexOf(".")), filePath.toFile());
+			        files.put(file.getName().substring(0,  file.getName().lastIndexOf(".")), file);
 			    }
-			});
+			}
 		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
+		else logger.info("No audio files located. Play command will not work.");
 		
 		return files;
 	}

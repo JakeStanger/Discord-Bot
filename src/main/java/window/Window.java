@@ -104,7 +104,8 @@ public class Window implements ActionListener
 		if(event.getSource() == this.btnStart)
 		{
 			System.out.println("-----------------------------------------------STARTING SERVER-----------------------------------------------");
-			if(Bot.getInstance().init(this.txtToken.getText()))
+			boolean success = Bot.getInstance().init(this.txtToken.getText());
+			if(success)
 			{
 				this.btnStart.setEnabled(false);
 				if(this.chkRemember.isSelected()) ReadWrite.writeTokenToFile(this.txtToken.getText());
