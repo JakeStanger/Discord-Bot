@@ -131,42 +131,58 @@ public class Bot extends ListenerAdapter
 		else event.getMessage().deleteMessage();
 	}
 	
+	/**
+	 * Plays the given sound
+	 * @param sound A string referring to the sound file excluding the extension
+	 * @param event
+	 */
 	private void playSound(String sound, GuildMessageReceivedEvent event)
 	{
-		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()) != null )
+		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()) != null)
 		{
 			File audioFile = null;
 	        try
 	        {
-	            if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
+	            //Get sound
+	        	if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
 	            else
 	            {
-	            	this.message(Phrases.UnknownSound.getRandom(), event);
+	            	this.message(Phrases.UnknownSound.getRandom(), event); //Unknown sound
 	            	return;
 	            }
 	
-	            player = new FilePlayer(audioFile);
+	            //Play sound
+	        	player = new FilePlayer(audioFile);
 	            event.getGuild().getAudioManager().setSendingHandler(player);
 	            player.play();
 	        }
 	        catch (IOException e)
 	        {
-	            this.message(Phrases.UnknownSound.getRandom(), event);
+	            this.message(Phrases.UnknownSound.getRandom(), event); //Unknown sound
 	        }
 	        catch (UnsupportedAudioFileException e)
 	        {
-	           this.message(Phrases.UnreadableSound.getRandom(), event);
+	           this.message(Phrases.UnreadableSound.getRandom(), event); //Unknown file type
 	        }
 		}
-		else this.message(Phrases.BadPermission.getRandom(), event);
+		else this.message(Phrases.BadPermission.getRandom(), event); //Not in voice channel
 	}
 	
+	/**
+	 * Stops the currently playing sound
+	 * @param event
+	 */
 	private void stopSound(GuildMessageReceivedEvent event)
 	{
 		if(player != null) player.stop();
-		else message(Phrases.StopSilence.getRandom(), event);
+		else message(Phrases.StopSilence.getRandom(), event); //If no sound was playing
 	}
 	
+	/**
+	 * Joins the given channel
+	 * @param channelName
+	 * @param event
+	 */
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
 	{
 		if(event.getGuild().getAudioManager() != null) event.getGuild().getAudioManager().closeAudioConnection();
@@ -180,21 +196,37 @@ public class Bot extends ListenerAdapter
         event.getGuild().getAudioManager().openAudioConnection(channel);
 	}
 	
+	/**
+	 * Leaves the current channel
+	 * @param event
+	 */
 	private void leaveChannel(GuildMessageReceivedEvent event)
 	{
 		event.getGuild().getAudioManager().closeAudioConnection();
 	}
 	
+	/**
+	 * Flips a coin
+	 * @param event
+	 */
 	private void coin(GuildMessageReceivedEvent event)
 	{
 		this.message(this.random.nextInt(2) == 0 ? Phrases.Coin.Heads.getRandom() : Phrases.Coin.Tails.getRandom(), event);
 	}
 	
+	/**
+	 * Rolls a 6-sided dice
+	 * @param event
+	 */
 	private void dice(GuildMessageReceivedEvent event)
 	{
 		this.message(Integer.toString(this.random.nextInt(5)+1), event);
 	}
 	
+	/**
+	 * Gets a random user
+	 * @param event
+	 */
 	private void randUser(GuildMessageReceivedEvent event)
 	{
 		List<User> users = event.getChannel().getUsers();
@@ -202,45 +234,55 @@ public class Bot extends ListenerAdapter
 		this.message(user.getAsMention() +", " +  Phrases.UserMention.getRandom(), event);
 	}
 	
+	/**
+	 * Mutes the given user
+	 * @param userMention the user to mute
+	 * @param event
+	 */
 	private void muteUser(String userMention, GuildMessageReceivedEvent event)
 	{
 		if(event.getChannel().checkPermission(event.getAuthor(), Permission.MESSAGE_MANAGE))
 		{
-			if(userMention.equals("@everyone"))
+			if(userMention.equals("@everyone")) //Don't even try to mute everyone. It won't work.
 			{
 				message(Phrases.MuteEveryone.getRandom(), event);
 				return;
 			}
 			
 			List<User> users = event.getChannel().getUsers();
-			for(User user : users)
+			for(User user : users) //Look through list of users until you find the mentioned one
 			{
 				if(("@" + user.getUsername()).toLowerCase().equals(userMention))
 				{
 					if(!user.isBot())
 					{
 						String id = user.getId();
-						if(!this.mutedUsers.contains(id))
+						if(!this.mutedUsers.contains(id)) //Mute
 						{
 							this.mutedUsers.add(id);
 							message("Muted " + user.getAsMention(), event);
 						}
-						else
+						else //Unmute
 						{
 							this.mutedUsers.remove(id);
 							message("Unmuted " + user.getAsMention(), event);
 						}
-						ReadWrite.writeMutedUsers(mutedUsers);
+						ReadWrite.writeMutedUsers(mutedUsers); //Update muted file.
 					}
-					else message(Phrases.MuteBot.getRandom(), event);
+					else message(Phrases.MuteBot.getRandom(), event); //Attempted to mute bot
 					return;
 				}
 			}
-			message(Phrases.UnknownUser.getRandom(), event);
+			message(Phrases.UnknownUser.getRandom(), event); //User not found in list
 		}
-		else message(Phrases.BadPermission.getRandom(), event);
+		else message(Phrases.BadPermission.getRandom(), event); //Bad permission
 	}
 	
+	/**
+	 * Shows a list of commands and their purpose.
+	 * A little hard-coded, but there you go.
+	 * @param event
+	 */
 	private void help(GuildMessageReceivedEvent event)
 	{
 		this.message("***Commands:***\n"
@@ -255,11 +297,15 @@ public class Bot extends ListenerAdapter
 				+ "**help** - Shows a list of commands\n", event);
 	}
 	
+	/**
+	 * Shows a list of sounds
+	 * @param event
+	 */
 	private void helpPlay(GuildMessageReceivedEvent event)
 	{
 		StringBuilder message = new StringBuilder();
 		boolean bold = true;
-		for(String command : this.sounds.keySet())
+		for(String command : this.sounds.keySet()) //Loop over every sound file
 		{
 			message.append((bold ? "**" : "") + command + (bold ? "**" : "" )+ "    ");
 			bold = !bold;
@@ -267,6 +313,11 @@ public class Bot extends ListenerAdapter
 		message(message.toString(), event);
 	}
 	
+	/**
+	 * Corrects people's annoying SPAG mistakes.
+	 * @param message
+	 * @param event
+	 */
 	private void grammarNazi(String message, GuildMessageReceivedEvent event)
 	{
 		message = message.toLowerCase();
@@ -276,6 +327,11 @@ public class Bot extends ListenerAdapter
 		if(message.contains("reminder that")) message("You've just earned yourself a one-way ticket to hell.", event);
 	}
 	
+	/**
+	 * Sends a message on both the bot and server
+	 * @param message
+	 * @param event
+	 */
 	public void message(String message, GuildMessageReceivedEvent event)
 	{
 		System.out.println("[Message] " + message);
