@@ -133,34 +133,38 @@ public class Bot extends ListenerAdapter
 	
 	private void playSound(String sound, GuildMessageReceivedEvent event)
 	{
-		File audioFile = null;
-        try
-        {
-            if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
-            else
-            {
-            	this.message(Phrases.UnknownSound.getRandom(), event);
-            	return;
-            }
-
-            player = new FilePlayer(audioFile);
-            event.getGuild().getAudioManager().setSendingHandler(player);
-            player.play();
-        }
-        catch (IOException e)
-        {
-            this.message(Phrases.UnknownSound.getRandom(), event);
-        }
-        catch (UnsupportedAudioFileException e)
-        {
-           this.message(Phrases.UnreadableSound.getRandom(), event);
-        }
+		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()) != null )
+		{
+			File audioFile = null;
+	        try
+	        {
+	            if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
+	            else
+	            {
+	            	this.message(Phrases.UnknownSound.getRandom(), event);
+	            	return;
+	            }
+	
+	            player = new FilePlayer(audioFile);
+	            event.getGuild().getAudioManager().setSendingHandler(player);
+	            player.play();
+	        }
+	        catch (IOException e)
+	        {
+	            this.message(Phrases.UnknownSound.getRandom(), event);
+	        }
+	        catch (UnsupportedAudioFileException e)
+	        {
+	           this.message(Phrases.UnreadableSound.getRandom(), event);
+	        }
+		}
+		else this.message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	private void stopSound(GuildMessageReceivedEvent event)
 	{
 		if(player != null) player.stop();
-		//else message(Phrases.StopSilence.getRandom(), event);
+		else message(Phrases.StopSilence.getRandom(), event);
 	}
 	
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
@@ -240,7 +244,7 @@ public class Bot extends ListenerAdapter
 	private void help(GuildMessageReceivedEvent event)
 	{
 		this.message("***Commands:***\n"
-				+ "**play <sound>** - Plays the given sound\n"
+				+ "**play [sound]** - Shows a list of sounds or [Plays the given sound]\n"
 				+ "**stop** - Stops playing the current sound\n"
 				+ "**join <channel>** - Joins the given voice channel\n"
 				+ "**leave** - Leaves the current voice channel\n"
@@ -248,7 +252,7 @@ public class Bot extends ListenerAdapter
 				+ "**dice** - Rolls a dice\n"
 				+ "**randUser** - Gets a random user\n"
 				+ "**mute <@user>** - Mutes the given user in all text channels\n"
-				+ "**help [play]** - Get a list of commands [sounds]\n", event);
+				+ "**help** - Shows a list of commands\n", event);
 	}
 	
 	private void helpPlay(GuildMessageReceivedEvent event)
