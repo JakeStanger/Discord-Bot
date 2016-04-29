@@ -65,7 +65,6 @@ public class ReadWrite
 		HashMap<String, File> files = new HashMap<String, File>();
 		
 		File[] audioFiles = new File("./audio/").listFiles(); //You may need to change this on certain OSs
-		for(File file : audioFiles) System.out.println(file);
 		//If this pathname does not denote a directory, then listFiles() returns null. 
 
 		if(audioFiles.length != 0)

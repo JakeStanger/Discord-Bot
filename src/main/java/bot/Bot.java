@@ -107,10 +107,10 @@ public class Bot extends ListenerAdapter
 					case "leave":
 						leaveChannel(event);
 						break;
-					case "coin":
+					case "flip":
 						coin(event);
 						break;
-					case "dice":
+					case "roll":
 						dice(event);
 						break;
 					case "randuser":
@@ -123,6 +123,8 @@ public class Bot extends ListenerAdapter
 					case "help":
 						help(event);
 						break;
+					case "reload":
+						reload(event);
 					default:
 						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
@@ -138,7 +140,7 @@ public class Bot extends ListenerAdapter
 	 */
 	private void playSound(String sound, GuildMessageReceivedEvent event)
 	{
-		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()) != null)
+		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()).getConnectedChannel() != null)
 		{
 			File audioFile = null;
 	        try
@@ -158,7 +160,8 @@ public class Bot extends ListenerAdapter
 	        }
 	        catch (IOException e)
 	        {
-	            this.message(Phrases.UnknownSound.getRandom(), event); //Unknown sound
+	            this.message(Phrases.UnknownSound.getRandom(), event); //Error reading sound
+	            e.printStackTrace(); //TODO investigate the cause of sound errors more closely
 	        }
 	        catch (UnsupportedAudioFileException e)
 	        {
@@ -185,15 +188,19 @@ public class Bot extends ListenerAdapter
 	 */
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
 	{
-		if(event.getGuild().getAudioManager() != null) event.getGuild().getAudioManager().closeAudioConnection();
-		//Scans through the VoiceChannels in this Guild, looking for one with a case-insensitive matching name.
-        VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null); 
-        if (channel == null)
-        {
-            this.message(Phrases.UnknownChannel.getRandom(), event);
-            return;
-        }
-        event.getGuild().getAudioManager().openAudioConnection(channel);
+		if(event.getChannel().checkPermission(event.getAuthor(), Permission.VOICE_CONNECT))
+		{
+			if(event.getGuild().getAudioManager() != null) event.getGuild().getAudioManager().closeAudioConnection(); //Close existing voice connection
+			//Scans through the VoiceChannels in this Guild, looking for one with a case-insensitive matching name.
+	        VoiceChannel channel = event.getGuild().getVoiceChannels().stream().filter(vChan -> vChan.getName().equalsIgnoreCase(channelName)).findFirst().orElse(null); 
+	        if (channel == null)
+	        {
+	            this.message(Phrases.UnknownChannel.getRandom(), event);
+	            return;
+	        }
+	        event.getGuild().getAudioManager().openAudioConnection(channel);
+		}
+		else this.message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	/**
@@ -202,7 +209,8 @@ public class Bot extends ListenerAdapter
 	 */
 	private void leaveChannel(GuildMessageReceivedEvent event)
 	{
-		event.getGuild().getAudioManager().closeAudioConnection();
+		if(event.getChannel().checkPermission(event.getAuthor(), Permission.VOICE_CONNECT)) event.getGuild().getAudioManager().closeAudioConnection();
+		else this.message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	/**
@@ -229,9 +237,13 @@ public class Bot extends ListenerAdapter
 	 */
 	private void randUser(GuildMessageReceivedEvent event)
 	{
-		List<User> users = event.getChannel().getUsers();
-		User user = users.get(random.nextInt(users.size()));
-		this.message(user.getAsMention() +", " +  Phrases.UserMention.getRandom(), event);
+		if(event.getChannel().checkPermission(event.getAuthor(), Permission.MESSAGE_MENTION_EVERYONE))
+		{
+			List<User> users = event.getChannel().getUsers();
+			User user = users.get(random.nextInt(users.size()));
+			this.message(user.getAsMention() +", " +  Phrases.UserMention.getRandom(), event);
+		}
+		else this.message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	/**
@@ -290,8 +302,8 @@ public class Bot extends ListenerAdapter
 				+ "**stop** - Stops playing the current sound\n"
 				+ "**join <channel>** - Joins the given voice channel\n"
 				+ "**leave** - Leaves the current voice channel\n"
-				+ "**coin** - Flips a coin\n"
-				+ "**dice** - Rolls a dice\n"
+				+ "**flip** - Flips a coin\n"
+				+ "**roll** - Rolls a dice\n"
 				+ "**randUser** - Gets a random user\n"
 				+ "**mute <@user>** - Mutes the given user in all text channels\n"
 				+ "**help** - Shows a list of commands\n", event);
@@ -311,6 +323,16 @@ public class Bot extends ListenerAdapter
 			bold = !bold;
 		}
 		message(message.toString(), event);
+	}
+	
+	private void reload(GuildMessageReceivedEvent event)
+	{
+		if(event.getChannel().checkPermission(event.getAuthor(), Permission.MANAGE_SERVER))
+		{
+			this.sounds = ReadWrite.readSounds();
+			this.message("Sounds reloaded", event);
+		}
+		else this.message(Phrases.BadPermission.getRandom(), event);
 	}
 	
 	/**
