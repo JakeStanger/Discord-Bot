@@ -7,6 +7,6 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
-	<classpathentry kind="lib" path="lib/JDA-withDependencies-2.0.0_242.jar" sourcepath="lib/JDA-2.0.0_242-sources.jar"/>
+	<classpathentry kind="lib" path="lib/JDA-withDependencies-2.0.0_253.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
