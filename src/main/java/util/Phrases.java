@@ -371,7 +371,318 @@ public class Phrases
 		  
 		  public static String getRandom() 
 		  {
-		        return values()[(int) (Math.random() * values().length)].message;
+			  return values()[(int) (Math.random() * values().length)].message;
 		  }
+	}
+	
+	public static class Weather
+	{
+		public enum Intro
+		{
+			A("Ok listen up people, here's what the sky is up to."),
+			B("You people can't be bothered to look out your window, so I've sourced the outdoors for you.");
+			
+			public String message;
+
+			private Intro(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Temp
+		{
+			A("How hot is it? It's exactly "),
+			B("Perhaps knowing you're too hot or too cold isn't accurate enough? Well here's accuracy: ");
+			
+			public String message;
+
+			private Temp(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Description
+		{
+			A("And here's a vague description of everything: "),
+			B("If this means anything to you, you'd be glad to know it's ");
+			
+			public String message;
+
+			private Description(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Wind
+		{
+			A("I can't tell if this is enough to knock over bins, but here's how fast the wind is: "),
+			B("Speed of the mass net movement of air particles from a high concentration to a low concentration if you cared: ");
+			
+			public String message;
+
+			private Wind(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Direction
+		{
+			A("But the question we've all been asking: what way are the particles moving? "),
+			B("Here's which direction your bins will fall in: ");
+			
+			public String message;
+
+			private Direction(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Chill
+		{
+			A("As if it wasnt cold enough already, the wind is making it feel this much colder: "),
+			B("Because you rely on water so much, evapouration will make you feel this much colder: ");
+			
+			public String message;
+
+			private Chill(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Humidity
+		{
+			A("Here's how much water is in the air: "),
+			B("God knows what it's a percentage of, but here's the wetness of the air: ");
+			
+			public String message;
+
+			private Humidity(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Pressure
+		{
+			A("Here's a thing representing the amount of air there is: "),
+			B("Even though this means very little to you, I'm going to give you the pressure anyway. It's ");
+			
+			public String message;
+
+			private Pressure(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum PressureState
+		{
+			A("The amount of air is "),
+			B("Enjoy this vague term describing the change in quantity of air around you: ");
+			
+			public String message;
+
+			private PressureState(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Visibility
+		{
+			A("If there weren't bloody houses in the way you'd be able to see for "),
+			B("Useless fact: if you were on the sea you could see for ");
+			
+			public String message;
+
+			private Visibility(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Sunrise
+		{
+			A("Fire Ball Alpha came into sight at exactly "),
+			B("You could see things without a torch today at any point past ");
+			
+			public String message;
+
+			private Sunrise(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		
+		public enum Sunset
+		{
+			A("If it wasn't for light pollution, stars would come out after "),
+			B("The sun's cerfew tonight is ");
+			
+			public String message;
+
+			private Sunset(String message)
+			{
+				this.message = message;
+			}
+			  
+			 public static String getRandom() 
+			{
+				 return values()[(int) (Math.random() * values().length)].message;
+			}
+		}
+		public static class Forecast
+		{
+			public enum Intro
+			{
+				A("And if that wasn't enough, here's some vague information for the rest of the week."),
+				B("Now to watch me look into the future.");
+				
+				public String message;
+
+				private Intro(String message)
+				{
+					this.message = message;
+				}
+				  
+				 public static String getRandom() 
+				{
+					 return values()[(int) (Math.random() * values().length)].message;
+				}
+			}
+			
+			public enum Day
+			{
+				A("On "),
+				B("When the calender declares it is a ");
+				
+				public String message;
+
+				private Day(String message)
+				{
+					this.message = message;
+				}
+				  
+				 public static String getRandom() 
+				{
+					 return values()[(int) (Math.random() * values().length)].message;
+				}
+			}
+			
+			public enum High
+			{
+				A("This is as hot as it will get: "),
+				B("It might get to a whopping ");
+				
+				public String message;
+
+				private High(String message)
+				{
+					this.message = message;
+				}
+				  
+				 public static String getRandom() 
+				{
+					 return values()[(int) (Math.random() * values().length)].message;
+				}
+			}
+			
+			public enum Low
+			{
+				A("At one point, it'll be as cold as "),
+				B("Put on your jumpers, at one time it's only ");
+				
+				public String message;
+
+				private Low(String message)
+				{
+					this.message = message;
+				}
+				  
+				 public static String getRandom() 
+				{
+					 return values()[(int) (Math.random() * values().length)].message;
+				}
+			}
+			
+			public enum Desc
+			{
+				A("Here's my favourite vague statement again: "),
+				B("Vague outlook: ");
+				
+				public String message;
+
+				private Desc(String message)
+				{
+					this.message = message;
+				}
+				  
+				 public static String getRandom() 
+				{
+					 return values()[(int) (Math.random() * values().length)].message;
+				}
+			}
+		}
 	}
 }

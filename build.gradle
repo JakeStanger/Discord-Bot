@@ -14,7 +14,7 @@ jar {
     }
 }
 
-version = '1.0.5'
+version = '1.2.1-pi'
 
 task fatJar(type: Jar) {
 	exclude 'audio'
@@ -32,7 +32,7 @@ task fatJar(type: Jar) {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     //Discord API
-    compile 'net.dv8tion:JDA:2.0.0_253'
+    compile 'net.dv8tion:JDA:2.1.1_300'
     
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.13'

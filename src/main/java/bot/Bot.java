@@ -2,12 +2,31 @@ package bot;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
 import javax.security.auth.login.LoginException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.xml.bind.JAXBException;
+
+import org.apache.commons.lang3.text.WordUtils;
+
+import com.github.fedy2.weather.YahooWeatherService;
+import com.github.fedy2.weather.data.Astronomy;
+import com.github.fedy2.weather.data.Atmosphere;
+import com.github.fedy2.weather.data.Channel;
+import com.github.fedy2.weather.data.Condition;
+import com.github.fedy2.weather.data.Forecast;
+import com.github.fedy2.weather.data.Item;
+import com.github.fedy2.weather.data.Wind;
+import com.github.fedy2.weather.data.unit.DegreeUnit;
+import com.github.fedy2.weather.data.unit.Time;
+import com.google.code.chatterbotapi.ChatterBot;
+import com.google.code.chatterbotapi.ChatterBotFactory;
+import com.google.code.chatterbotapi.ChatterBotSession;
+import com.google.code.chatterbotapi.ChatterBotType;
 
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.Permission;
@@ -32,6 +51,10 @@ public class Bot extends ListenerAdapter
 	private HashMap<String, File> sounds;
 	private List<String> mutedUsers;
 	
+	ChatterBotFactory factory;
+	ChatterBot cleverbot;
+	ChatterBotSession cleverbotSession;
+	
 	public Bot()
 	{
 		instance = this;
@@ -40,6 +63,8 @@ public class Bot extends ListenerAdapter
 		random = new Random();
 		sounds = ReadWrite.readSounds();
 		mutedUsers = ReadWrite.readMutedUsers();
+		
+		factory = new ChatterBotFactory();
 	}
 	
 	public static Bot getInstance()
@@ -60,6 +85,9 @@ public class Bot extends ListenerAdapter
         {
             new JDABuilder().setBotToken(token).addListener(this).buildBlocking();
             //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); Only enable when updating avatar
+            
+            cleverbot = factory.create(ChatterBotType.CLEVERBOT);
+            cleverbotSession = cleverbot.createSession();
         }
         catch (IllegalArgumentException e)
         {
@@ -76,6 +104,11 @@ public class Bot extends ListenerAdapter
             e.printStackTrace();
             success = false;
         }
+		catch(Exception e)
+		{
+			logger.fatal("Unknown error starting bot");
+			e.printStackTrace();
+		}
 		
 		return success;
     }
@@ -88,6 +121,7 @@ public class Bot extends ListenerAdapter
 			String message = event.getMessage().getContent();
 			
 			this.grammarNazi(message, event);
+			if(message.startsWith("@Grandad_Botbags")) cleverbot(message.substring("@Grandad_Botbags".length()), event);
 			if(message.startsWith("!"))
 			{
 				String[] command = message.substring(("!").length()).toLowerCase().split(" ");
@@ -125,6 +159,10 @@ public class Bot extends ListenerAdapter
 						break;
 					case "reload":
 						reload(event);
+						break;
+					case "weather":
+						weather(event);
+						break;
 					default:
 						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
@@ -132,7 +170,7 @@ public class Bot extends ListenerAdapter
 		}
 		else event.getMessage().deleteMessage();
 	}
-	
+
 	/**
 	 * Plays the given sound
 	 * @param sound A string referring to the sound file excluding the extension
@@ -347,6 +385,112 @@ public class Bot extends ListenerAdapter
 		if(message.contains(" alot ") || message.contains(" alot") || message.contains("alot ")) message("*A lot", event);
 		if(message.contains("any one")) message("*Anyone", event);
 		if(message.contains("reminder that")) message("You've just earned yourself a one-way ticket to hell.", event);
+		if(message.contains(" u ")) message("Text talk? How about a good old knife to the throat?", event);
+		if(message.contains("yeh")) message("*Yeah", event);
+	}
+	
+	/**
+	 * Sends a message to CleverBot.
+	 * Sends a message with the reply.
+	 * @param message
+	 * @param event
+	 */
+	private void cleverbot(String message, GuildMessageReceivedEvent event)
+	{
+		try
+		{
+			message(this.cleverbotSession.think(message), event);
+		}
+		catch(Exception e)
+		{
+			logger.fatal("An error occurred getting Cleverbot to think. Sorry about that.");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Gets the current weather
+	 * @param event
+	 */
+	private void weather(GuildMessageReceivedEvent event)
+	{
+		try
+		{
+			YahooWeatherService service = new YahooWeatherService();
+			Channel channel = service.getForecast("15051", DegreeUnit.CELSIUS);
+			
+			StringBuilder report = new StringBuilder();
+			
+			Astronomy astronomy = channel.getAstronomy();
+			Time sunrise = astronomy.getSunrise();
+			Time sunset = astronomy.getSunset();
+			
+			String sunriseS = sunrise.getHours() + ":" + sunrise.getMinutes() + sunrise.getConvention();
+			String sunsetS = sunset.getHours() + ":" + sunset.getMinutes() + sunset.getConvention();
+			
+			Atmosphere atmosphere = channel.getAtmosphere();
+			String humidity = Integer.toString(atmosphere.getHumidity()) + "%";
+			String pressure = Float.toString(atmosphere.getPressure()) + "mb";
+			String pressureState = WordUtils.capitalize(atmosphere.getRising().name().toLowerCase());
+			String visibility = Float.toString(atmosphere.getVisibility()) + "km";
+			
+			Wind wind = channel.getWind();
+			String speed = Float.toString(wind.getSpeed()) + "km/h";
+			String direction = Integer.toString(wind.getDirection()) + "\u00B0";
+			String chill = Float.toString(Math.round(((wind.getChill()-32f)/1.8f) * 10f) / 10f) + "\u00B0C"; //For some reason this is in Fahrenheit. It also needs rounding.
+			
+			Item item = channel.getItem();
+			Condition condition = item.getCondition();
+			String temperature = Integer.toString(condition.getTemp()) + "\u00B0C";
+			String description = condition.getText();
+			
+			List<Forecast> forecasts = item.getForecasts();
+			List<String> forecastsS = new ArrayList<String>();
+			for(Forecast forecast : forecasts)
+			{
+				StringBuilder forecastS = new StringBuilder();
+				
+				String day = WordUtils.capitalize(forecast.getDay().name().toLowerCase());
+				String high = Integer.toString(forecast.getHigh()) + "\u00B0C";
+				String low = Integer.toString(forecast.getLow()) + "\u00B0C";
+				String forecastDesc = forecast.getText();
+				
+				forecastS.append(Phrases.Weather.Forecast.Day.getRandom() + "**" + day + "**\n");
+				forecastS.append(Phrases.Weather.Forecast.High.getRandom() + "**" + high + "**\n");
+				forecastS.append(Phrases.Weather.Forecast.Low.getRandom() + "**" + low + "**\n");
+				forecastS.append(Phrases.Weather.Forecast.Desc.getRandom() + "**" + forecastDesc + "**\n\n");
+				
+				forecastsS.add(forecastS.toString());
+			}
+			
+			report.append("***" + Phrases.Weather.Intro.getRandom() + "***\n\n");
+			
+			report.append(Phrases.Weather.Temp.getRandom() + "**" + temperature + "**\n");
+			report.append(Phrases.Weather.Description.getRandom() + "**" + description + "**\n\n");
+			
+			report.append(Phrases.Weather.Wind.getRandom() + "**" + speed + "**\n");
+			report.append(Phrases.Weather.Direction.getRandom() + "**" + direction + "**\n");
+			report.append(Phrases.Weather.Chill.getRandom() + "**" + chill + "**\n");
+			report.append(Phrases.Weather.Humidity.getRandom() + "**" + humidity + "**\n\n");
+			
+			report.append(Phrases.Weather.Pressure.getRandom() + "**" + pressure + "** (This appears to be completely broken :(\n"); //TODO Investigate why this is broken
+			report.append(Phrases.Weather.PressureState.getRandom() + "**" + pressureState + "**\n");
+			report.append(Phrases.Weather.Visibility.getRandom() + "**" + visibility + "**\n\n");
+			
+			report.append(Phrases.Weather.Sunrise.getRandom() + "**" + sunriseS + "**\n");
+			report.append(Phrases.Weather.Sunset.getRandom() + "**" + sunsetS + "**\n\n");
+			
+			StringBuilder forecastSB = new StringBuilder();
+			forecastSB.append("***" + Phrases.Weather.Forecast.Intro.getRandom() + "***\n \n");
+			for(String forecast : forecastsS) forecastSB.append(forecast);
+			
+			message(report.toString(), event);
+			message(forecastSB.toString(), event);
+		}
+		catch(JAXBException | IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	/**
