@@ -64,8 +64,8 @@ public class ReadWrite
 	{
 		HashMap<String, File> files = new HashMap<String, File>();
 		
-		//File[] audioFiles = new File("/home/pi/Grandad_Botbags/audio/").listFiles(); //You may need to change this on certain OSs
-		File[] audioFiles = new File("audio/").listFiles();
+		File[] audioFiles = new File("/home/pi/Grandad_Botbags/audio/").listFiles(); //You may need to change this on certain OSs
+		//File[] audioFiles = new File("audio/").listFiles();
 		//If this pathname does not denote a directory, then listFiles() returns null. 
 
 		if(audioFiles != null && audioFiles.length != 0)

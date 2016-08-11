@@ -34,7 +34,10 @@ import net.dv8tion.jda.audio.player.FilePlayer;
 import net.dv8tion.jda.audio.player.Player;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.entities.VoiceChannel;
+import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.events.voice.GenericVoiceEvent;
+import net.dv8tion.jda.events.voice.VoiceJoinEvent;
 import net.dv8tion.jda.hooks.ListenerAdapter;
 import net.dv8tion.jda.utils.SimpleLog;
 import util.Phrases;
@@ -113,6 +116,22 @@ public class Bot extends ListenerAdapter
 		return success;
     }
 	
+	public void onVoiceJoin(VoiceJoinEvent event)
+	{
+		logger.info("Wew");
+		User user=event.getUser();
+		logger.info("Wew");
+		String name=user.getId();
+		logger.info("Wew");
+		//if(name.equals("142710464655130624")||name.equals("144489620690829313"))
+		//{
+		logger.info("Wew");
+		this.playSound("bazinga", event);
+		logger.info("Wew");
+		//}
+		
+	}
+	 
 	@Override
 	public void onGuildMessageReceived(GuildMessageReceivedEvent event)
 	{
@@ -208,7 +227,26 @@ public class Bot extends ListenerAdapter
 		}
 		else this.message(Phrases.BadPermission.getRandom(), event); //Not in voice channel
 	}
-	
+	private void playSound(String sound, VoiceJoinEvent event)
+	{
+		File audioFile = null;
+		try
+		{
+			if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
+			else return;
+			player = new FilePlayer(audioFile);
+            event.getGuild().getAudioManager().setSendingHandler(player);
+            player.play();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+		catch(UnsupportedAudioFileException e)
+		{
+			e.printStackTrace();
+		}
+	}
 	/**
 	 * Stops the currently playing sound
 	 * @param event
