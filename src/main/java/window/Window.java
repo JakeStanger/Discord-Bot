@@ -1,27 +1,12 @@
 package window;
 
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.JTextPane;
-
 import bot.Bot;
 import util.ReadWrite;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class Window implements ActionListener
 {
@@ -85,7 +70,7 @@ public class Window implements ActionListener
 		MessageConsole mc = new MessageConsole(txtConsole);
 		mc.redirectOut();
 		mc.redirectErr(Color.RED, null);
-		mc.setMessageLines(100);
+		mc.setMessageLines(10000);
 		
 		frame.setVisible(true);
 		frame.setSize(new Dimension(500, 550));

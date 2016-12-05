@@ -1,47 +1,34 @@
 package bot;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
-
-import javax.security.auth.login.LoginException;
-import javax.sound.sampled.UnsupportedAudioFileException;
-import javax.xml.bind.JAXBException;
-
-import org.apache.commons.lang3.text.WordUtils;
-
 import com.github.fedy2.weather.YahooWeatherService;
-import com.github.fedy2.weather.data.Astronomy;
-import com.github.fedy2.weather.data.Atmosphere;
-import com.github.fedy2.weather.data.Channel;
-import com.github.fedy2.weather.data.Condition;
-import com.github.fedy2.weather.data.Forecast;
-import com.github.fedy2.weather.data.Item;
-import com.github.fedy2.weather.data.Wind;
+import com.github.fedy2.weather.data.*;
 import com.github.fedy2.weather.data.unit.DegreeUnit;
 import com.github.fedy2.weather.data.unit.Time;
 import com.google.code.chatterbotapi.ChatterBot;
 import com.google.code.chatterbotapi.ChatterBotFactory;
 import com.google.code.chatterbotapi.ChatterBotSession;
 import com.google.code.chatterbotapi.ChatterBotType;
-
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.Permission;
 import net.dv8tion.jda.audio.player.FilePlayer;
 import net.dv8tion.jda.audio.player.Player;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.entities.VoiceChannel;
-import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.events.voice.GenericVoiceEvent;
 import net.dv8tion.jda.events.voice.VoiceJoinEvent;
 import net.dv8tion.jda.hooks.ListenerAdapter;
 import net.dv8tion.jda.utils.SimpleLog;
+import org.apache.commons.lang3.text.WordUtils;
 import util.Phrases;
 import util.ReadWrite;
+
+import javax.security.auth.login.LoginException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.xml.bind.JAXBException;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
 
 public class Bot extends ListenerAdapter
 {
@@ -54,9 +41,10 @@ public class Bot extends ListenerAdapter
 	private HashMap<String, File> sounds;
 	private List<String> mutedUsers;
 	
-	ChatterBotFactory factory;
-	ChatterBot cleverbot;
-	ChatterBotSession cleverbotSession;
+	private ChatterBotFactory factory;
+	private ChatterBotSession cleverbotSession;
+	
+	private boolean isBong;
 	
 	public Bot()
 	{
@@ -87,9 +75,9 @@ public class Bot extends ListenerAdapter
 		try
         {
             new JDABuilder().setBotToken(token).addListener(this).buildBlocking();
-            //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); Only enable when updating avatar
-            
-            cleverbot = factory.create(ChatterBotType.CLEVERBOT);
+            //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); //Only enable when updating avatar
+	
+	        ChatterBot cleverbot = factory.create(ChatterBotType.CLEVERBOT);
             cleverbotSession = cleverbot.createSession();
         }
         catch (IllegalArgumentException e)
@@ -116,20 +104,10 @@ public class Bot extends ListenerAdapter
 		return success;
     }
 	
+	@Override
 	public void onVoiceJoin(VoiceJoinEvent event)
 	{
-		logger.info("Wew");
-		User user=event.getUser();
-		logger.info("Wew");
-		String name=user.getId();
-		logger.info("Wew");
-		//if(name.equals("142710464655130624")||name.equals("144489620690829313"))
-		//{
-		logger.info("Wew");
-		this.playSound("bazinga", event);
-		logger.info("Wew");
-		//}
-		
+		this.playSound("behold", event);
 	}
 	 
 	@Override
@@ -148,7 +126,7 @@ public class Bot extends ListenerAdapter
 				{
 					case "play":
 						if(command.length > 1) playSound(command[1], event);
-						else this.helpPlay(event);;
+						else this.helpPlay(event);
 						break;
 					case "stop":
 						stopSound(event);
@@ -182,6 +160,9 @@ public class Bot extends ListenerAdapter
 					case "weather":
 						weather(event);
 						break;
+					case "lyrics":
+						fetchLyrics(command[1], command[2], event);
+						break;
 					default:
 						this.message(Phrases.UnknownCommand.getRandom(), event);
 				}
@@ -192,14 +173,14 @@ public class Bot extends ListenerAdapter
 
 	/**
 	 * Plays the given sound
-	 * @param sound A string referring to the sound file excluding the extension
-	 * @param event
+	 * @param sound A string referring to the sound file excluding the extension.
+	 * @param event The message received event.
 	 */
 	private void playSound(String sound, GuildMessageReceivedEvent event)
 	{
 		if(event.getAuthor().getJDA().getAudioManager(event.getGuild()).getConnectedChannel() != null)
 		{
-			File audioFile = null;
+			File audioFile;
 	        try
 	        {
 	            //Get sound
@@ -229,7 +210,7 @@ public class Bot extends ListenerAdapter
 	}
 	private void playSound(String sound, VoiceJoinEvent event)
 	{
-		File audioFile = null;
+		File audioFile;
 		try
 		{
 			if(this.sounds.containsKey(sound)) audioFile = this.sounds.get(sound);
@@ -238,18 +219,14 @@ public class Bot extends ListenerAdapter
             event.getGuild().getAudioManager().setSendingHandler(player);
             player.play();
 		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
-		catch(UnsupportedAudioFileException e)
+		catch(IOException | UnsupportedAudioFileException e)
 		{
 			e.printStackTrace();
 		}
 	}
 	/**
-	 * Stops the currently playing sound
-	 * @param event
+	 * Stops the currently playing sound.
+	 * @param event The message received event.
 	 */
 	private void stopSound(GuildMessageReceivedEvent event)
 	{
@@ -259,8 +236,8 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Joins the given channel
-	 * @param channelName
-	 * @param event
+	 * @param channelName The name of the channel to join.
+	 * @param event The message received event.
 	 */
 	private void joinChannel(String channelName, GuildMessageReceivedEvent event)
 	{
@@ -281,7 +258,7 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Leaves the current channel
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void leaveChannel(GuildMessageReceivedEvent event)
 	{
@@ -291,7 +268,7 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Flips a coin
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void coin(GuildMessageReceivedEvent event)
 	{
@@ -300,7 +277,7 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Rolls a 6-sided dice
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void dice(GuildMessageReceivedEvent event)
 	{
@@ -309,7 +286,7 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Gets a random user
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void randUser(GuildMessageReceivedEvent event)
 	{
@@ -325,7 +302,7 @@ public class Bot extends ListenerAdapter
 	/**
 	 * Mutes the given user
 	 * @param userMention the user to mute
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void muteUser(String userMention, GuildMessageReceivedEvent event)
 	{
@@ -369,7 +346,7 @@ public class Bot extends ListenerAdapter
 	/**
 	 * Shows a list of commands and their purpose.
 	 * A little hard-coded, but there you go.
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void help(GuildMessageReceivedEvent event)
 	{
@@ -382,12 +359,14 @@ public class Bot extends ListenerAdapter
 				+ "**roll** - Rolls a dice\n"
 				+ "**randUser** - Gets a random user\n"
 				+ "**mute <@user>** - Mutes the given user in all text channels\n"
+				+ "**weather** - Gives a *very* useful weather report\n"
+				+ "**lyrics <band> <song>** - Shows the lyrics for the given song\n"
 				+ "**help** - Shows a list of commands\n", event);
 	}
 	
 	/**
 	 * Shows a list of sounds
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void helpPlay(GuildMessageReceivedEvent event)
 	{
@@ -395,7 +374,7 @@ public class Bot extends ListenerAdapter
 		boolean bold = true;
 		for(String command : this.sounds.keySet()) //Loop over every sound file
 		{
-			message.append((bold ? "**" : "") + command + (bold ? "**" : "" )+ "    ");
+			message.append(bold ? "**" : "").append(command).append(bold ? "**" : "").append("    ");
 			bold = !bold;
 		}
 		message(message.toString(), event);
@@ -413,11 +392,14 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Corrects people's annoying SPAG mistakes.
-	 * @param message
-	 * @param event
+	 * @param message The message to correct.
+	 * @param event The message received event.
 	 */
 	private void grammarNazi(String message, GuildMessageReceivedEvent event)
 	{
+		//SpellResponse spellResponse = this.spellChecker.check(message);
+		//for(SpellCorrection correction : spellResponse.getCorrections()) this.message(correction.getValue(), event);
+		
 		message = message.toLowerCase();
 		if(message.equals("ping")) message("pong", event);
 		if(message.contains(" alot ") || message.contains(" alot") || message.contains("alot ")) message("*A lot", event);
@@ -427,11 +409,35 @@ public class Bot extends ListenerAdapter
 		if(message.contains("yeh")) message("*Yeah", event);
 	}
 	
+	private void fetchLyrics(String band, String song, GuildMessageReceivedEvent event)
+	{
+		try
+		{
+			String allHTML = new Scanner(new URL("http://www.azlyrics.com/lyrics/" + band + "/" + song + ".html").openStream(), "UTF-8").useDelimiter("\\A").next();
+			String unformatted = String.valueOf(allHTML.split("<div>")[1]).split("</div>")[0];
+			String formatted = unformatted.replace("<br>", "")
+					.replace("<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->", "")
+					.replace("<i>", "*").replace("</i>", "*")
+					.replace("<b>", "**").replace("</b>", "**")
+					.replace("&quot", "\"");
+			
+			for(String part : splitString(formatted))
+			{
+				System.out.println(part.length());
+				message(part, event);
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Sends a message to CleverBot.
 	 * Sends a message with the reply.
-	 * @param message
-	 * @param event
+	 * @param message The message to process.
+	 * @param event The message received event.
 	 */
 	private void cleverbot(String message, GuildMessageReceivedEvent event)
 	{
@@ -448,7 +454,7 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Gets the current weather
-	 * @param event
+	 * @param event The message received event.
 	 */
 	private void weather(GuildMessageReceivedEvent event)
 	{
@@ -483,7 +489,7 @@ public class Bot extends ListenerAdapter
 			String description = condition.getText();
 			
 			List<Forecast> forecasts = item.getForecasts();
-			List<String> forecastsS = new ArrayList<String>();
+			List<String> forecastsS = new ArrayList<>();
 			for(Forecast forecast : forecasts)
 			{
 				StringBuilder forecastS = new StringBuilder();
@@ -493,34 +499,34 @@ public class Bot extends ListenerAdapter
 				String low = Integer.toString(forecast.getLow()) + "\u00B0C";
 				String forecastDesc = forecast.getText();
 				
-				forecastS.append(Phrases.Weather.Forecast.Day.getRandom() + "**" + day + "**\n");
-				forecastS.append(Phrases.Weather.Forecast.High.getRandom() + "**" + high + "**\n");
-				forecastS.append(Phrases.Weather.Forecast.Low.getRandom() + "**" + low + "**\n");
-				forecastS.append(Phrases.Weather.Forecast.Desc.getRandom() + "**" + forecastDesc + "**\n\n");
+				forecastS.append(Phrases.Weather.Forecast.Day.getRandom()).append("**").append(day).append("**\n");
+				forecastS.append(Phrases.Weather.Forecast.High.getRandom()).append("**").append(high).append("**\n");
+				forecastS.append(Phrases.Weather.Forecast.Low.getRandom()).append("**").append(low).append("**\n");
+				forecastS.append(Phrases.Weather.Forecast.Desc.getRandom()).append("**").append(forecastDesc).append("**\n\n");
 				
 				forecastsS.add(forecastS.toString());
 			}
 			
-			report.append("***" + Phrases.Weather.Intro.getRandom() + "***\n\n");
+			report.append("***").append(Phrases.Weather.Intro.getRandom()).append("***\n\n");
 			
-			report.append(Phrases.Weather.Temp.getRandom() + "**" + temperature + "**\n");
-			report.append(Phrases.Weather.Description.getRandom() + "**" + description + "**\n\n");
+			report.append(Phrases.Weather.Temp.getRandom()).append("**").append(temperature).append("**\n");
+			report.append(Phrases.Weather.Description.getRandom()).append("**").append(description).append("**\n\n");
 			
-			report.append(Phrases.Weather.Wind.getRandom() + "**" + speed + "**\n");
-			report.append(Phrases.Weather.Direction.getRandom() + "**" + direction + "**\n");
-			report.append(Phrases.Weather.Chill.getRandom() + "**" + chill + "**\n");
-			report.append(Phrases.Weather.Humidity.getRandom() + "**" + humidity + "**\n\n");
+			report.append(Phrases.Weather.Wind.getRandom()).append("**").append(speed).append("**\n");
+			report.append(Phrases.Weather.Direction.getRandom()).append("**").append(direction).append("**\n");
+			report.append(Phrases.Weather.Chill.getRandom()).append("**").append(chill).append("**\n");
+			report.append(Phrases.Weather.Humidity.getRandom()).append("**").append(humidity).append("**\n\n");
 			
-			report.append(Phrases.Weather.Pressure.getRandom() + "**" + pressure + "** (This appears to be completely broken :(\n"); //TODO Investigate why this is broken
-			report.append(Phrases.Weather.PressureState.getRandom() + "**" + pressureState + "**\n");
-			report.append(Phrases.Weather.Visibility.getRandom() + "**" + visibility + "**\n\n");
+			report.append(Phrases.Weather.Pressure.getRandom()).append("**").append(pressure).append("** (This appears to be completely broken :(\n"); //TODO Investigate why this is broken
+			report.append(Phrases.Weather.PressureState.getRandom()).append("**").append(pressureState).append("**\n");
+			report.append(Phrases.Weather.Visibility.getRandom()).append("**").append(visibility).append("**\n\n");
 			
-			report.append(Phrases.Weather.Sunrise.getRandom() + "**" + sunriseS + "**\n");
-			report.append(Phrases.Weather.Sunset.getRandom() + "**" + sunsetS + "**\n\n");
+			report.append(Phrases.Weather.Sunrise.getRandom()).append("**").append(sunriseS).append("**\n");
+			report.append(Phrases.Weather.Sunset.getRandom()).append("**").append(sunsetS).append("**\n\n");
 			
 			StringBuilder forecastSB = new StringBuilder();
-			forecastSB.append("***" + Phrases.Weather.Forecast.Intro.getRandom() + "***\n \n");
-			for(String forecast : forecastsS) forecastSB.append(forecast);
+			forecastSB.append("***").append(Phrases.Weather.Forecast.Intro.getRandom()).append("***\n \n");
+			forecastsS.forEach(forecastSB::append);
 			
 			message(report.toString(), event);
 			message(forecastSB.toString(), event);
@@ -533,12 +539,31 @@ public class Bot extends ListenerAdapter
 	
 	/**
 	 * Sends a message on both the bot and server
-	 * @param message
-	 * @param event
+	 * @param message The message to send.
+	 * @param event The message received event.
 	 */
-	public void message(String message, GuildMessageReceivedEvent event)
+	private void message(String message, GuildMessageReceivedEvent event)
 	{
 		System.out.println("[Message] " + message);
 		event.getChannel().sendMessage(message);
+	}
+	
+	public String[] splitString(String s)
+	{
+		int interval = 2000;
+		
+		int arrayLength = (int) Math.ceil(((s.length() / (double)interval)));
+		String[] result = new String[arrayLength];
+		
+		int j = 0;
+		int lastIndex = result.length - 1;
+		for (int i = 0; i < lastIndex; i++)
+		{
+			result[i] = s.substring(j, j + interval);
+			j += interval;
+		} //Add the last bit
+		result[lastIndex] = s.substring(j);
+		
+		return result;
 	}
 }
