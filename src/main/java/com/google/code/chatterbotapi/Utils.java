@@ -20,7 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /*
-    chatter-bot-api
+    chatter-com.jakestanger.discordBot.commands-api
     Copyright (C) 2011 pierredavidbelanger@gmail.com
  
     This program is free software: you can redistribute it and/or modify

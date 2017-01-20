@@ -3,7 +3,7 @@ package com.google.code.chatterbotapi;
 import java.util.Locale;
 
 /*
-    chatter-bot-api
+    chatter-com.jakestanger.discordBot.commands-api
     Copyright (C) 2011 pierredavidbelanger@gmail.com
  
     This program is free software: you can redistribute it and/or modify

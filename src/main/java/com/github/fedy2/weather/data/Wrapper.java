@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlAnyElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * List wrapper.
+ * List com.jakestanger.discordBot.wrapper.
  * @author "Federico De Faveri defaveri@gmail.com"
  */
 @XmlRootElement
