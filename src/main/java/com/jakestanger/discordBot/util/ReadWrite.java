@@ -1,8 +1,7 @@
 package com.jakestanger.discordBot.util;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+import com.jakestanger.discordBot.wrapper.Song;
 import net.dv8tion.jda.core.utils.SimpleLog;
 import net.dv8tion.jda.core.utils.SimpleLog.Level;
 
@@ -15,6 +14,55 @@ import java.util.Map;
 public class ReadWrite
 {
 	private static final SimpleLog logger = SimpleLog.getLog("ReadWrite");
+	
+	public static HashMap<String, String> readSounds()
+	{
+		HashMap<String, String> sounds = new HashMap<>();
+		
+		JsonParser parser = new JsonParser();
+		try
+		{
+			JsonObject object = parser.parse(new FileReader("/home/pi/Grandad_Botbags/sounds.json")).getAsJsonObject();
+			//JsonObject object = parser.parse(new FileReader("sounds.json")).getAsJsonObject();
+			
+			for(Map.Entry<String, JsonElement> sound : object.entrySet()) sounds.put(sound.getKey(), sound.getValue().getAsString());
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		
+		return sounds;
+	}
+	
+	public static void addSound(String newName, String url)
+	{
+		HashMap<String, String> sounds = readSounds();
+		sounds.put(newName, url);
+		
+		JsonObject object = new JsonObject();
+		for(String name : sounds.keySet()) object.addProperty(name, sounds.get(name));
+		
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		String json = gson.toJson(object);
+		
+		try
+		{
+			FileWriter writer = new FileWriter("/home/pi/Grandad_Botbags/sounds.json");
+			//FileWriter writer = new FileWriter("sounds.json");
+			writer.write(json);
+			writer.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void writeSounds()
+	{
+		
+	}
 	
 	public static void readSettings()
 	{
@@ -46,7 +94,8 @@ public class ReadWrite
 	{
 		try
 		{
-			FileWriter file = new FileWriter("token.txt");
+			FileWriter file = new FileWriter("/home/pi/Grandad_Botbags/token.txt");
+			//FileWriter file = new FileWriter("token.txt");
 			BufferedWriter buffer = new BufferedWriter(file);
 			buffer.write(token);
 			buffer.close();
@@ -66,7 +115,8 @@ public class ReadWrite
 		FileReader file;
 		try
 		{
-			file = new FileReader("token.txt");
+			file = new FileReader("/home/pi/Grandad_Botbags/token.txt");
+			//file = new FileReader("token.txt");
 			BufferedReader buffer = new BufferedReader(file);
 			token = buffer.readLine();
 			buffer.close();
@@ -84,72 +134,22 @@ public class ReadWrite
 		return token;
 	}
 	
-	public static HashMap<String, File> readSounds()
+	public static List<Song> readLyrics(String artist)
 	{
-		HashMap<String, File> files = new HashMap<>();
+		List<Song> songs = new ArrayList<>();
 		
-		//File[] audioFiles = new File("/home/pi/Grandad_Botbags/audio/").listFiles(); //You may need to change this on certain OSs
-		File[] audioFiles = new File("audio/").listFiles();
-		//If this pathname does not denote a directory, then listFiles() returns null. 
-
-		if(audioFiles != null && audioFiles.length != 0)
-		{
-			for (File file : audioFiles) 
-			{
-			    if (file.isFile()) 
-			    {
-			        files.put(file.getName().substring(0,  file.getName().lastIndexOf(".")), file);
-			    }
-			}
-		}
-		else logger.info("No audio files located. Play command will not work.");
-		
-		return files;
-	}
-	
-	public static List<String> readMutedUsers()
-	{
-		List<String> users = new ArrayList<>();
-		
-		FileReader file;
+		JsonParser parser = new JsonParser();
 		try
 		{
-			file = new FileReader("muted.txt");
-			BufferedReader buffer = new BufferedReader(file);
-			
-			String line;
-			while((line = buffer.readLine()) != null) users.add(line);
-			
-			buffer.close();
-			
-			logger.log(Level.INFO, "Loaded muted users from file.");
+			//JsonObject object = parser.parse(new FileReader("artists/" + artist + ".json")).getAsJsonObject();
+			JsonObject object = parser.parse(new FileReader("/home/pi/Grandad_Botbags/artists/" + artist + ".json")).getAsJsonObject();
+			System.out.println(object);
 		}
-		catch(FileNotFoundException e)
-		{
-			logger.log(Level.INFO, "No muted user list file found.");
-		}
-		catch(IOException e)
+		catch (FileNotFoundException e)
 		{
 			e.printStackTrace();
 		}
 		
-		return users;
-	}
-	
-	public static void writeMutedUsers(List<String> mutedUsers)
-	{
-		try
-		{
-			FileWriter file = new FileWriter("muted.txt");
-			BufferedWriter buffer = new BufferedWriter(file);
-			for(String userId : mutedUsers) buffer.write(userId);
-			buffer.close();
-			
-			logger.log(Level.INFO, "Successfully wrote muted users to file.");
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-		}
+		return songs;
 	}
 }

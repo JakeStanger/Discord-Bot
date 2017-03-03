@@ -4,13 +4,11 @@ import com.github.fedy2.weather.YahooWeatherService;
 import com.github.fedy2.weather.data.*;
 import com.github.fedy2.weather.data.unit.DegreeUnit;
 import com.github.fedy2.weather.data.unit.Time;
-import com.google.code.chatterbotapi.ChatterBot;
-import com.google.code.chatterbotapi.ChatterBotFactory;
-import com.google.code.chatterbotapi.ChatterBotSession;
-import com.google.code.chatterbotapi.ChatterBotType;
 import com.jakestanger.discordBot.audio.GuildMusicManager;
+import com.jakestanger.discordBot.util.Lyrics;
 import com.jakestanger.discordBot.util.Phrases;
 import com.jakestanger.discordBot.util.ReadWrite;
+import com.jakestanger.discordBot.wrapper.Song;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
@@ -25,17 +23,20 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import net.dv8tion.jda.core.managers.AudioManager;
 import net.dv8tion.jda.core.utils.SimpleLog;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
+import org.json.JSONObject;
 
 import javax.security.auth.login.LoginException;
 import javax.xml.bind.JAXBException;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 
 public class Bot extends ListenerAdapter
@@ -44,10 +45,7 @@ public class Bot extends ListenerAdapter
 	
 	private SimpleLog logger;
 	
-	private HashMap<String, File> sounds;
-	
-	private ChatterBotFactory chatterBotFactory;
-	private ChatterBotSession cleverbotSession;
+	private HashMap<String, String> sounds;
 	
 	private final AudioPlayerManager playerManager;
 	private final Map<Long, GuildMusicManager> musicManagers;
@@ -55,11 +53,9 @@ public class Bot extends ListenerAdapter
 	public Bot()
 	{
 		instance = this;
-		logger = SimpleLog.getLog("GrandadBotbags");
-		logger.info("Creating new instance of com.jakestanger.discordBot.commands");
-		sounds = ReadWrite.readSounds();
-		
-		chatterBotFactory = new ChatterBotFactory();
+		logger = SimpleLog.getLog("Bot");
+		logger.info("Creating new instance of Bot");
+		//sounds = ReadWrite.readSounds();
 		
 		musicManagers = new HashMap<>();
 		playerManager = new DefaultAudioPlayerManager();
@@ -85,9 +81,6 @@ public class Bot extends ListenerAdapter
         {
             new JDABuilder(AccountType.BOT).setToken(token).addListener(this).buildBlocking();
             //jda.getAccountManager().setAvatar(AvatarUtil.getAvatar(new File(new ResourceLocation("/images/avatar.png").getPath()))).update(); //Only enable when updating avatar
-	
-	        ChatterBot cleverbot = chatterBotFactory.create(ChatterBotType.CLEVERBOT);
-            cleverbotSession = cleverbot.createSession();
         }
         catch (IllegalArgumentException e)
         {
@@ -130,8 +123,8 @@ public class Bot extends ListenerAdapter
 		String message = event.getMessage().getContent();
 		TextChannel channel = event.getTextChannel();
 		
-		this.grammarNazi(message, event);
-		if(message.startsWith("@Grandad_Botbags")) cleverbot(message.substring("@Grandad_Botbags".length()), event);
+		if(message.length() == 1 && StringUtils.isNumeric(message) && Integer.parseInt(message) <= 4) checkLyricsAnswer(Integer.parseInt(message), event);
+		if(message.startsWith("@Grandad_Botbags")) reply(message.substring("@Grandad_Botbags".length()), channel);
 		if(message.startsWith("!"))
 		{
 			String[] command = message.substring(("!").length()).split(" ");
@@ -139,11 +132,8 @@ public class Bot extends ListenerAdapter
 			{
 				case "play":
 					if(command.length > 1)
-					{
-						if(this.sounds.containsKey(command[1]))
-							loadAndPlay(this.sounds.get(command[1]).getAbsolutePath(), channel, command[1]);
-						else loadAndPlay(command[1], channel, null);
-					}
+						if (this.sounds.containsKey(command[1])) loadAndPlay(this.sounds.get(command[1]), channel);
+						else loadAndPlay(command[1], channel);
 					else this.helpPlay(channel);
 					break;
 				case "pause":
@@ -155,6 +145,10 @@ public class Bot extends ListenerAdapter
 				case "empty":
 					emptyQueue(channel);
 					break;
+				case "add":
+					if(command.length > 2) addSound(channel, command[1], command[2]);
+					else this.message(Phrases.UnknownCommand.getRandom(), channel);
+					break;
 				case "join":
 					if(command.length > 1) joinChannel(command[1], event);
 					else this.message(Phrases.NoChannel.getRandom(), channel);
@@ -163,7 +157,12 @@ public class Bot extends ListenerAdapter
 					leaveChannel(event);
 					break;
 				case "lyrics":
-					fetchLyrics(command[1], command[2], channel);
+					if(command.length > 2) fetchLyrics(command[1], command[2], channel);
+					else this.message(Phrases.UnknownCommand.getRandom(), channel);
+					break;
+				case "lyricsgame":
+					if(command.length > 1) lyricsGame(command, channel);
+					else this.message(Phrases.UnknownCommand.getRandom(), channel);
 					break;
 				case "weather":
 					weather(channel);
@@ -185,21 +184,16 @@ public class Bot extends ListenerAdapter
 	 * Load and play the given audio stream
 	 * @param trackUrl The path to audio stream
 	 * @param channel The text channel
-	 * @param trackName The name of the track (instead of the metadata title)
 	 */
-	private void loadAndPlay(String trackUrl, TextChannel channel, String trackName)
+	private void loadAndPlay(String trackUrl, TextChannel channel)
 	{
-		System.out.println(trackName);
 		GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
 		
 		playerManager.loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
 			@Override
 			public void trackLoaded(AudioTrack track)
 			{
-				String title = track.getInfo().title;
-				if(trackName != null) message("Adding  *" + trackName + "* to the queue", channel);
-				else message("Adding *" + title + "* to the queue", channel);
-				
+				message("Adding *" + track.getInfo().title + "* to the queue", channel);
 				play(channel.getGuild(), musicManager, track);
 			}
 			
@@ -218,13 +212,14 @@ public class Bot extends ListenerAdapter
 			@Override
 			public void noMatches()
 			{
-				if(trackName == null) message("*" + trackUrl + "* is not a valid sound source", channel);
+				message("*" + trackUrl + "* is not a valid sound source", channel);
 			}
 			
 			@Override
 			public void loadFailed(FriendlyException exception)
 			{
 				message("An error occurred: *" + exception.getMessage() + "*", channel);
+				exception.printStackTrace();
 			}
 		});
 	}
@@ -286,6 +281,19 @@ public class Bot extends ListenerAdapter
 	}
 	
 	/**
+	 * Adds a sound to the database for quick-playing
+	 * @param channel The text channel
+	 * @param name The sound friendly name
+	 * @param url The sound URL
+	 */
+	private void addSound(TextChannel channel, String name, String url)
+	{
+		sounds.put(name, url);
+		ReadWrite.addSound(name, url);
+		message("Added sound *" + name + "* with url **" + url + "** to database.", channel);
+	}
+		
+	/**
 	 * Joins the given channel
 	 * @param channelName The name of the channel to join.
 	 * @param event The message received event.
@@ -328,6 +336,8 @@ public class Bot extends ListenerAdapter
 				+ "**play [sound]** - Shows a list of sounds or [plays the given sound]\n"
 				+ "**pause** - Toggle-pauses the audio player\n"
 				+ "**skip** - Skips the current audio track\n"
+				+ "**empty** - Empties the song queue\n"
+				+ "**add <sound> <url>** - Add a sound to the local database\n"
 				+ "**join <channel>** - Joins the given voice channel\n"
 				+ "**leave** - Leaves the current voice channel\n"
 				+ "**weather** - Gives a *very* useful weather report\n"
@@ -342,12 +352,11 @@ public class Bot extends ListenerAdapter
 	private void helpPlay(TextChannel channel)
 	{
 		StringBuilder message = new StringBuilder();
-		boolean bold = true;
-		for(String command : this.sounds.keySet()) //Loop over every sound file
-		{
-			message.append(bold ? "**" : "").append(command).append(bold ? "**" : "").append("    ");
-			bold = !bold;
-		}
+		List<String> names = new ArrayList<>(sounds.keySet());
+		names.sort(Comparator.naturalOrder());
+		
+		for(String name : names) message.append(name).append("\t\t**||**\t\t");
+		
 		message(message.toString(), channel);
 	}
 	
@@ -361,65 +370,118 @@ public class Bot extends ListenerAdapter
 		else this.message(Phrases.BadPermission.getRandom(), event.getTextChannel());
 	}
 	
-	/**
-	 * Corrects people's annoying SPAG mistakes.
-	 * @param message The message to correct.
-	 * @param event The message received event.
-	 */
-	private void grammarNazi(String message, MessageReceivedEvent event)
-	{
-		//SpellResponse spellResponse = this.spellChecker.check(message);
-		//for(SpellCorrection correction : spellResponse.getCorrections()) this.message(correction.getValue(), event);
-		
-		message = message.toLowerCase();
-		if(event.getMessage().getContent().equals("^")) event.getMessage().deleteMessage();
-		if(message.equals("ping")) message("pong", event.getTextChannel());
-		if(message.contains(" alot ") || message.contains(" alot") || message.contains("alot ")) message("*A lot", event.getTextChannel());
-		if(message.contains("any one")) message("*Anyone", event.getTextChannel());
-		if(message.contains("reminder that")) message("You've just earned yourself a one-way ticket to hell.", event.getTextChannel());
-		if(message.contains(" u ")) message("Text talk? How about a good old knife to the throat?", event.getTextChannel());
-		if(message.contains("yeh")) message("*Yeah", event.getTextChannel());
-	}
-	
 	private void fetchLyrics(String band, String song, TextChannel channel)
 	{
-		try
+		String urlExt = "/lyrics/" + band + "/" + song + ".html";
+		String lyrics = Lyrics.fetchLyrics(urlExt, new Song(song, urlExt, band));
+		for(String message : splitString(lyrics)) message(message, channel);
+	}
+	
+	/**
+	 * Lyrics trivia game
+	 * @param command The full command
+	 */
+	private void lyricsGame(String command[], TextChannel channel)
+	{
+		List<String> artists = new ArrayList<>();
+		for(String commandPart : command)
+			if (!commandPart.equals("lyricsgame")) artists.add(commandPart);
+		
+		List<Song> allSongs = new ArrayList<>();
+		for(String artist : artists)
 		{
-			String allHTML = new Scanner(new URL("http://www.azlyrics.com/lyrics/" + band + "/" + song + ".html").openStream(), "UTF-8").useDelimiter("\\A").next();
-			String unformatted = String.valueOf(allHTML.split("<div>")[1]).split("</div>")[0];
-			String formatted = unformatted.replace("<br>", "")
-					.replace("<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->", "")
-					.replace("<i>", "*").replace("</i>", "*")
-					.replace("<b>", "**").replace("</b>", "**")
-					.replace("&quot", "\"");
-			
-			for(String part : splitString(formatted))
-			{
-				System.out.println(part.length());
-				message(part, channel);
-			}
+			List<Song> artistSongs = Lyrics.fetchSongs(artist);
+			if(artistSongs != null) allSongs.addAll(artistSongs);
 		}
-		catch (IOException e)
+		
+		final int OPTIONS = 4;
+		List<Song> options = new ArrayList<>();
+		Random random = new Random();
+		while(options.size() < OPTIONS)
 		{
-			e.printStackTrace();
+			Song song = allSongs.get(random.nextInt(allSongs.size()));
+			if(!options.contains(song)) options.add(song);
 		}
+		
+		int correctAnswerID = random.nextInt(OPTIONS);
+		Song correctSong = options.get(correctAnswerID);
+		
+		String lyrics = Lyrics.fetchLyrics(correctSong.getLink(), correctSong);
+		List<String> lyricsSplit = new ArrayList<>(Arrays.asList(lyrics.split("\n")));
+		for(int i = lyricsSplit.size()-1; i > 0; i--)
+			if(lyricsSplit.get(i).equals("") || lyricsSplit.get(i).equals("\n"))
+				lyricsSplit.remove(i);
+		
+		final int LINES = 3;
+		
+		int startLine = random.nextInt(lyricsSplit.size()-3);
+		StringBuilder displayedLyrics = new StringBuilder();
+		for(int i = 0; i < LINES; i++)
+			if(lyricsSplit.get(startLine+i) != null)
+				displayedLyrics.append(lyricsSplit.get(startLine+i))
+						.append("\n");
+		
+		StringBuilder finalMessage = new StringBuilder();
+		finalMessage.append("Send a number between `1` and `" + OPTIONS + "` to select:\n\n");
+		for(int i = 0; i < options.size(); i++)
+			finalMessage.append((i+1))
+					.append(". ")
+					.append(options.get(i).getName())
+					.append("\n");
+		finalMessage.append("\n**").append(displayedLyrics).append("**");
+		
+		message(finalMessage.toString(), channel);
+		
+		Lyrics.GameData.setInLyricsMode(true);
+		Lyrics.GameData.setCorrectAnswerID(correctAnswerID);
+	}
+	
+	private void checkLyricsAnswer(int answer, MessageReceivedEvent event)
+	{
+		if(answer == Lyrics.GameData.getCorrectAnswerID() + 1)
+		{
+			Lyrics.GameData.incrementScore(event.getMember());
+			message(event.getMember().getAsMention() + " Correct answer!", event);
+			message("Your score is now `" + Lyrics.GameData.getScore(event.getMember()) + "`.", event);
+		}
+		else
+		{
+			Lyrics.GameData.resetScore(event.getMember());
+			message(event.getMember().getAsMention() + " Wrong. Your score has been reset to 0", event);
+			message("Your high score is `" + Lyrics.GameData.getHighScore(event.getMember()) + "`.", event);
+		}
+		
+		Lyrics.GameData.setInLyricsMode(false);
 	}
 	
 	/**
 	 * Sends a message to CleverBot.
 	 * Sends a message with the reply.
 	 * @param message The message to process.
-	 * @param event The message received event.
+	 * @param channel The text channel
 	 */
-	private void cleverbot(String message, MessageReceivedEvent event)
+	private void reply(String message, TextChannel channel)
 	{
 		try
 		{
-			message(this.cleverbotSession.think(message), event.getTextChannel());
+			message = message.replace(" ", "%20"); //Encode spaces
+			
+			String ID = channel.getGuild().getId();
+			
+			URL url = new URL("http://api.acobot.net/get?bid=580&key=dZQNmytiaEu7QOAU&uid=" + ID + "&msg=" + message);
+			URLConnection connection = url.openConnection();
+			InputStream stream = connection.getInputStream();
+			
+			String encoding = connection.getContentEncoding();
+			encoding = encoding == null ? "UTF-8" : encoding;
+			String body = IOUtils.toString(stream, encoding);
+			
+			JSONObject json = new JSONObject(body);
+			message(json.getString("cnt"), channel);
 		}
 		catch(Exception e)
 		{
-			logger.fatal("An error occurred getting Cleverbot to think. Sorry about that.");
+			logger.fatal("An error occurred when I tried to think.");
 			e.printStackTrace();
 		}
 	}
@@ -517,7 +579,7 @@ public class Bot extends ListenerAdapter
 	 * @param message The message to send.
 	 * @param event The message received event.
 	 */
-	private void message(String message, GuildMessageReceivedEvent event)
+	private void message(String message, MessageReceivedEvent event)
 	{
 		System.out.println("[Message] " + message);
 		event.getChannel().sendMessage(message).queue();
