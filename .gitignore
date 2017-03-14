@@ -10,8 +10,9 @@ build.bat
 # Ignore Gradle GUI config
 gradle-app.setting
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
-!gradle-wrapper.jar
+# Avoid ignoring Gradle com.jakestanger.discordBot.wrapper jar file (.jar files are usually ignored)
+!gradle-com.jakestanger.discordBot.wrapper.jar
 
 # Cache of project
 .gradletasknamecache
+/.idea/

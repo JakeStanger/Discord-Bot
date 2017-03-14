@@ -55,7 +55,7 @@ public class Bot extends ListenerAdapter
 		instance = this;
 		logger = SimpleLog.getLog("Bot");
 		logger.info("Creating new instance of Bot");
-		//sounds = ReadWrite.readSounds();
+		sounds = ReadWrite.readSounds();
 		
 		musicManagers = new HashMap<>();
 		playerManager = new DefaultAudioPlayerManager();
