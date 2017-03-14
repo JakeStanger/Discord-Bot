@@ -320,13 +320,20 @@ public class Bot extends ListenerAdapter
 	 */
 	private void helpPlay(TextChannel channel)
 	{
+		List<String> files = ReadWrite.getSoundsFromFile();
+		files.sort(Comparator.naturalOrder());
+		
+		
 		StringBuilder message = new StringBuilder();
 		List<String> names = new ArrayList<>(sounds.keySet());
 		names.sort(Comparator.naturalOrder());
 		
-		for(String name : names) message.append(name).append("\t\t**||**\t\t");
+		for(String file : files) message.append(file).append("\t**||**\t");
+		for(String name : names) message.append(name).append("\t**||**\t");
 		
-		message(message.toString(), channel);
+		String printMessage = message.substring(0, message.length()-"\"\\t**||**\\t\"".length()).toString();
+		
+		message(printMessage, channel);
 	}
 	
 	private void reload(MessageReceivedEvent event)

@@ -5,8 +5,11 @@ import net.dv8tion.jda.core.utils.SimpleLog;
 import net.dv8tion.jda.core.utils.SimpleLog.Level;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Stream;
 
 public class ReadWrite
 {
@@ -98,5 +101,31 @@ public class ReadWrite
 			e.printStackTrace();
 		}
 		return token;
+	}
+	
+	public static List<String> getSoundsFromFile()
+	{
+		final String[] EXTENSIONS = {".wav", ".mp3", ".mp4", ".flac", ".ogg", ".wma", ".aac", ".m4a", ".m3u", ".pls"};
+		
+		try(Stream<Path> paths = Files.walk(Paths.get("")))
+		{
+			List<String> files = new ArrayList<>();
+			paths.forEach(filePath -> {
+				if (Files.isRegularFile(filePath))
+				{
+					String path = filePath.toString().toLowerCase();
+					if(Arrays.stream(EXTENSIONS).parallel().anyMatch(path::contains))
+						files.add(filePath.toString());
+				}
+			});
+			
+			return files;
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 }

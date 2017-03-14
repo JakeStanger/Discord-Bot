@@ -16,7 +16,7 @@ jar {
     }
 }
 
-version = '1.9.2b-pi'
+version = '1.9.3-music'
 
 task fatJar(type: Jar) {
 	exclude 'audio'
