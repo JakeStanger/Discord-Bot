@@ -16,13 +16,13 @@ jar {
     }
 }
 
-version = '1.9.2b-pi'
+version = '1.10-pi'
 
 task fatJar(type: Jar) {
 	exclude 'audio'
 	exclude 'images'
 	manifest {
-        attributes 'Implementation-Title': 'Gradle Jar File Example',
+        attributes 'Implementation-Title': 'Grandad Botbags',
         	'Implementation-Version': version,
         	'Main-Class': 'com.jakestanger.discordBot.DiscordBot'
     }
@@ -34,9 +34,9 @@ task fatJar(type: Jar) {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     compile 'net.dv8tion:JDA:3.0.BETA2_108' //Discord API
-    compile 'com.sedmelluq:lavaplayer:1.2.29' //Music player
     compile 'com.google.code.gson:gson:2.8.0' //JSON support
-
+    compile "commons-io:commons-io:+" //Apache commons IO
+    
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.13'
 

@@ -95,7 +95,7 @@ public class Bot extends ListenerAdapter
 		
 		if(message.length() == 1 && StringUtils.isNumeric(message) && Integer.parseInt(message) <= 4) checkLyricsAnswer(Integer.parseInt(message), event);
 		if(message.startsWith("@Grandad_Botbags")) reply(message.substring("@Grandad_Botbags".length()), channel);
-		if(message.startsWith("!"))
+		if(message.startsWith("$"))
 		{
 			String[] command = message.substring(("!").length()).split(" ");
 			switch(command[0].toLowerCase())
