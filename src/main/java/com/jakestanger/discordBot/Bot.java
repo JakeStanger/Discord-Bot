@@ -12,6 +12,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.Permission;
+import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
@@ -114,12 +115,16 @@ public class Bot extends ListenerAdapter
 			{
 				case "play":
 					if(command.length > 1)
-						if (this.sounds.containsKey(command[1])) loadAndPlay(this.sounds.get(command[1]), channel);
-						else loadAndPlay(command[1], channel);
+						if (this.sounds.containsKey(command[1])) loadAndPlay(this.sounds.get(command[1]), command.length > 2 ? command[2] : "", channel);
+						else loadAndPlay(command[1], command.length > 2 ? command[2] : "", channel);
 					else this.helpPlay(channel);
 					break;
 				case "pause":
 					togglePause(channel);
+					break;
+				case "seek":
+					if(command.length > 1) seek(command[1], channel);
+					else message("Missing argument.", channel);
 					break;
 				case "skip":
 					skipTrack(channel);
@@ -129,11 +134,11 @@ public class Bot extends ListenerAdapter
 					break;
 				case "add":
 					if(command.length > 2) addSound(channel, command[1], command[2]);
-					else this.message("Missing argument", channel);
+					else this.message("Missing argument.", channel);
 					break;
 				case "join":
 					if(command.length > 1) joinChannel(command[1], event);
-					else this.message("Unknown channel", channel);
+					else this.message("Unknown channel.", channel);
 					break;
 				case "leave":
 					leaveChannel(event);
@@ -156,7 +161,7 @@ public class Bot extends ListenerAdapter
 	 * @param trackUrl The path to audio stream
 	 * @param channel The text channel
 	 */
-	private void loadAndPlay(String trackUrl, TextChannel channel)
+	private void loadAndPlay(String trackUrl, String seekPos, TextChannel channel)
 	{
 		GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
 		
@@ -165,7 +170,21 @@ public class Bot extends ListenerAdapter
 			public void trackLoaded(AudioTrack track)
 			{
 				message("Adding *" + track.getInfo().title + "* to the queue", channel);
-				play(channel.getGuild(), musicManager, track);
+				
+				
+				try
+				{
+					if (!seekPos.equals("")) play(channel.getGuild(), musicManager, track, Long.parseLong(seekPos));
+					else //Youtube timestamps
+					{
+						if (!trackUrl.contains("?t=")) play(channel.getGuild(), musicManager, track);
+						else play(channel.getGuild(), musicManager, track, Long.parseLong(trackUrl.split("\\?t=")[1]));
+					}
+				}
+				catch (Exception e)
+				{
+					message("Timestamps must be a valid number of seconds.", channel);
+				}
 			}
 			
 			@Override
@@ -203,8 +222,44 @@ public class Bot extends ListenerAdapter
 	 */
 	private void play(Guild guild, GuildMusicManager musicManager, AudioTrack track)
 	{
+		play(guild, musicManager, track, 0);
+	}
+	
+	/**
+	 * Play the given track
+	 * @param guild The server
+	 * @param musicManager The music manager
+	 * @param track The track to play
+	 * @param seek The time in seconds to skip to
+	 */
+	private void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, long seek)
+	{
 		connectToFirstVoiceChannel(guild.getAudioManager());
 		musicManager.scheduler.queue(track);
+		
+		try
+		{
+			if (track.isSeekable()) track.setPosition(seek * 1000);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		guild.getJDA().getPresence().setGame(Game.of(musicManager.player.getPlayingTrack().getInfo().title));
+	}
+	
+	private void seek(String seek, TextChannel channel)
+	{
+		try
+		{
+			GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
+			musicManager.player.getPlayingTrack().setPosition(Long.parseLong(seek) * 1000);
+		}
+		catch (Exception e)
+		{
+			message("Timestamps must be a valid number in seconds.", channel);
+		}
 	}
 	
 	/**
@@ -217,6 +272,16 @@ public class Bot extends ListenerAdapter
 		musicManager.scheduler.nextTrack();
 		
 		message("Skipped to next track.", channel);
+		if(musicManager.player.getPlayingTrack() != null)
+		{
+			message("Now playing *" + musicManager.player.getPlayingTrack().getInfo().title + "*.", channel);
+			channel.getJDA().getPresence().setGame(Game.of(musicManager.player.getPlayingTrack().getInfo().title));
+		}
+		else
+		{
+			message("End of queue.", channel);
+			channel.getJDA().getPresence().setGame(Game.of("Nothing."));
+		}
 	}
 	
 	/**
